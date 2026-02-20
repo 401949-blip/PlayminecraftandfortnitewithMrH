@@ -1,29 +1,46 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Hathaway Games!</title>
+    <title>Fake Games!</title>
 
-<style>
-html, body {
-  margin: 0;
-  padding: 0;
-  height: 100%;
-  background-color: black;
-}
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+        }
 
-.fullscreen-gif {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  object-fit: cover;
-}
-</style>
-
+        #bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            object-fit: cover;
+        }
+    </style>
 </head>
-
 <body>
+
+<img id="bg" src="">
+
+<script>
+    var gifs = [
+        "Fortnitegif.gif",
+        "Fortnitegif2.gif",
+        "Fortnitegif3.gif",
+        "Fortnitegif4.gif"
+    ];
+
+    var randomGif = gifs[Math.floor(Math.random() * gifs.length)];
+
+    document.getElementById("bg").src = randomGif;
+</script>
+
+</body>
+</html>
 
 <img src="Fortnitegif.gif" class="fullscreen-gif">
 
