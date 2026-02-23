@@ -131,6 +131,33 @@ body {
   background: rgba(0, 0, 0, 0.6);
   padding: 10px 14px;
   border-radius: 8px;
+  font-family: "Segoe UI", "Trebuchet MS", Tahoma, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
+#shieldRing {
+  position: absolute;
+  width: 94px;
+  height: 94px;
+  border-radius: 50%;
+  pointer-events: none;
+  display: none;
+  z-index: 12010;
+  background: conic-gradient(from 0deg, rgba(255,190,70,0.0), rgba(255,140,30,0.95), rgba(255,220,130,0.55), rgba(255,150,35,0.95), rgba(255,190,70,0.0));
+  filter: drop-shadow(0 0 14px rgba(255,155,35,0.95)) drop-shadow(0 0 26px rgba(255,112,20,0.7));
+  animation: shieldSpin 1.15s linear infinite, shieldPulse 1.4s ease-in-out infinite;
+}
+
+#shieldRing::after {
+  content: "";
+  position: absolute;
+  inset: 11px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.64);
 }
 
 #bossUI {
@@ -193,6 +220,17 @@ body {
   100% { opacity: 0.45; }
 }
 
+@keyframes shieldSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes shieldPulse {
+  0% { opacity: 0.75; }
+  50% { opacity: 1; }
+  100% { opacity: 0.75; }
+}
+
 #playAgain {
   position: absolute;
   top: 50%;
@@ -216,8 +254,7 @@ body {
   <div id="ui">
     Score: <span id="score">0</span><br>
     Speed: <span id="spd">18.0</span><br>
-    Time: <span id="timeSurvived">00:00</span><br>
-    Shield: <span id="shieldState">OFF</span>
+    Time: <span id="timeSurvived">00:00</span>
   </div>
   <div id="bossUI">
     <div id="bossTop">
@@ -228,6 +265,7 @@ body {
   </div>
   <div id="bossAmbience"></div>
   <button id="playAgain">PLAY AGAIN</button>
+  <div id="shieldRing"></div>
   <img src="hathaway.jpeg" id="player" alt="player">
 </div>
 
@@ -241,7 +279,7 @@ const player = document.getElementById("player");
 const scoreEl = document.getElementById("score");
 const spdEl = document.getElementById("spd");
 const timeEl = document.getElementById("timeSurvived");
-const shieldStateEl = document.getElementById("shieldState");
+const shieldRing = document.getElementById("shieldRing");
 const playBtn = document.getElementById("playAgain");
 const bossUI = document.getElementById("bossUI");
 const bossFill = document.getElementById("bossFill");
@@ -286,6 +324,14 @@ let bossMaxHp = 0;
 let hasShield = false;
 let shieldImmuneUntil = 0;
 let runStartedAt = 0;
+const FX_SETTINGS = {
+  deathBurstParticles: 12,
+  devitoPetals: 76,
+  boNixDust: 34,
+  kirkUndead: 56,
+  wipeBatchSize: 10,
+  wipeBurstStride: 2
+};
 
 document.addEventListener("keydown", e => {
   keys[e.key] = true;
@@ -372,11 +418,10 @@ function resetState() {
   scoreEl.textContent = String(score);
   spdEl.textContent = speed.toFixed(1);
   timeEl.textContent = "00:00";
-  shieldStateEl.textContent = "OFF";
-  shieldStateEl.style.color = "#ffd6d6";
   player.style.opacity = "1";
   player.style.left = x + "px";
   player.style.top = y + "px";
+  shieldRing.style.display = "none";
   timeEl.textContent = formatTime(Date.now() - runStartedAt);
   playBtn.style.display = "none";
   bossUI.style.display = "none";
@@ -396,8 +441,13 @@ function restartGame() {
 
 function setShieldActive(active) {
   hasShield = active;
-  shieldStateEl.textContent = active ? "ON" : "OFF";
-  shieldStateEl.style.color = active ? "#ffae42" : "#ffd6d6";
+  shieldRing.style.display = active ? "block" : "none";
+}
+
+function updateShieldRingPosition() {
+  if (!hasShield) return;
+  shieldRing.style.left = (x - 17) + "px";
+  shieldRing.style.top = (y - 17) + "px";
 }
 
 function formatTime(ms) {
@@ -560,7 +610,7 @@ function boNixCutscene() {
   overlay.appendChild(speedLines);
 
   const dust = [];
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < FX_SETTINGS.boNixDust; i++) {
     const d = document.createElement("div");
     const size = 2 + Math.random() * 7;
     d.style.position = "absolute";
@@ -993,7 +1043,7 @@ function endBossFight(victory) {
   document.querySelectorAll(".boss-bullet").forEach(el => el.remove());
 
   if (victory) {
-    score += 250;
+    score += 200;
     scoreEl.textContent = String(score);
     speed += 7;
     spdEl.textContent = speed.toFixed(1);
@@ -1082,7 +1132,7 @@ function animeDeathBurst(xPos, yPos, parent) {
   }
   animateRing();
 
-  for (let i = 0; i < 24; i++) {
+  for (let i = 0; i < FX_SETTINGS.deathBurstParticles; i++) {
     const particle = document.createElement("div");
     particle.style.position = "absolute";
     particle.style.left = xPos + "px";
@@ -1104,7 +1154,7 @@ function animeDeathBurst(xPos, yPos, parent) {
     function animateParticle() {
       px += Math.cos(ang) * ps;
       py += Math.sin(ang) * ps;
-      life -= 0.04;
+      life -= 0.055;
       particle.style.transform = `translate(${px}px,${py}px)`;
       particle.style.opacity = life;
       if (life > 0) requestAnimationFrame(animateParticle);
@@ -1112,6 +1162,32 @@ function animeDeathBurst(xPos, yPos, parent) {
     }
     animateParticle();
   }
+}
+
+function smoothEnemyWipe(overlayHost) {
+  const enemies = Array.from(document.querySelectorAll(".enemy"));
+  const total = enemies.length;
+  if (total === 0) return;
+
+  let idx = 0;
+  function wipeChunk() {
+    const end = Math.min(total, idx + FX_SETTINGS.wipeBatchSize);
+    for (let i = idx; i < end; i++) {
+      const e = enemies[i];
+      if (!e || !e.isConnected) continue;
+      if (i % FX_SETTINGS.wipeBurstStride === 0) {
+        const rect = e.getBoundingClientRect();
+        animeDeathBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, overlayHost);
+      }
+      e.remove();
+    }
+    idx = end;
+    if (idx < total) requestAnimationFrame(wipeChunk);
+  }
+
+  requestAnimationFrame(wipeChunk);
+  score += total;
+  scoreEl.textContent = String(score);
 }
 
 function devitoCutscene() {
@@ -1196,7 +1272,7 @@ function devitoCutscene() {
   overlay.appendChild(whiteFlash);
 
   const petals = [];
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < FX_SETTINGS.devitoPetals; i++) {
     const p = document.createElement("div");
     const size = 5 + Math.random() * 14;
     p.style.position = "absolute";
@@ -1268,13 +1344,7 @@ function devitoCutscene() {
   createSlash(-14, 2200);
   createSlash(18, 2360);
 
-  setTimeout(() => {
-    document.querySelectorAll(".enemy").forEach(e => {
-      const rect = e.getBoundingClientRect();
-      animeDeathBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, overlay);
-      e.remove();
-    });
-  }, 2450);
+  setTimeout(() => { smoothEnemyWipe(overlay); }, 2450);
 
   let last = performance.now();
   function animatePetals(now) {
@@ -1447,7 +1517,7 @@ function kirk() {
   overlay.appendChild(sigilInner);
 
   const undead = [];
-  for (let i = 0; i < 72; i++) {
+  for (let i = 0; i < FX_SETTINGS.kirkUndead; i++) {
     const e = document.createElement("div");
     e.className = "enemy";
     let ex = 0;
@@ -1547,7 +1617,7 @@ function kirk() {
 
   setTimeout(() => {
     invincible = false;
-  }, 3000);
+  }, 10000);
 }
 
 function death() {
@@ -1593,6 +1663,7 @@ function death() {
 function loop() {
   if (gameOver) return;
   timeEl.textContent = formatTime(Date.now() - runStartedAt);
+  updateShieldRingPosition();
   if (cutsceneActive) {
     requestAnimationFrame(loop);
     return;
