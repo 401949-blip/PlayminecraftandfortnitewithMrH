@@ -93,6 +93,45 @@ body {
   border-radius: 6px;
 }
 
+.bonix {
+  position: absolute;
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #ffcc73, #ff7a00);
+  box-shadow: 0 0 26px rgba(255, 140, 0, 0.9);
+  border-radius: 9px;
+}
+
+.clash {
+  position: absolute;
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, #ffe53a 0%, #ffe53a 38%, #9e39ff 62%, #9e39ff 100%);
+  box-shadow: 0 0 28px rgba(255, 230, 58, 0.9), 0 0 30px rgba(158, 57, 255, 0.85);
+  border-radius: 10px;
+}
+
+.boss {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 14px;
+  object-fit: cover;
+  image-rendering: pixelated;
+  filter: saturate(1.2) contrast(1.15) drop-shadow(0 0 18px rgba(255, 60, 60, 0.95));
+  z-index: 9000;
+}
+
+.boss-bullet {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ffd7d7, #ff2d2d 62%, #840b0b);
+  box-shadow: 0 0 16px rgba(255, 55, 55, 0.9);
+  z-index: 8990;
+}
+
 #ui {
   position: absolute;
   top: 12px;
@@ -101,6 +140,66 @@ body {
   background: rgba(0, 0, 0, 0.6);
   padding: 10px 14px;
   border-radius: 8px;
+}
+
+#bossUI {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(520px, 84vw);
+  color: #ffe7e7;
+  background: rgba(0, 0, 0, 0.72);
+  border: 1px solid rgba(255, 110, 110, 0.45);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: none;
+  z-index: 12000;
+}
+
+#bossTop {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+}
+
+#bossBar {
+  width: 100%;
+  height: 12px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.14);
+}
+
+#bossFill {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, #ff8c8c, #ff2e2e);
+  box-shadow: 0 0 10px rgba(255, 70, 70, 0.8);
+  transition: width 0.18s linear;
+}
+
+#game.boss-mode {
+  filter: contrast(1.08) saturate(1.12);
+}
+
+#bossAmbience {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: none;
+  z-index: 8500;
+  background:
+    radial-gradient(circle at 50% 50%, rgba(255, 22, 22, 0.12), rgba(0, 0, 0, 0) 55%),
+    linear-gradient(180deg, rgba(20, 0, 0, 0.3), rgba(0, 0, 0, 0.18));
+  animation: bossPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes bossPulse {
+  0% { opacity: 0.45; }
+  50% { opacity: 0.8; }
+  100% { opacity: 0.45; }
 }
 
 #playAgain {
@@ -125,14 +224,23 @@ body {
 <div id="game" tabindex="0">
   <div id="ui">
     Score: <span id="score">0</span><br>
-    Speed: <span id="spd">18.0</span>
+    Speed: <span id="spd">18.0</span><br>
+    Time: <span id="timeSurvived">00:00</span><br>
+    Shield: <span id="shieldState">OFF</span>
   </div>
+  <div id="bossUI">
+    <div id="bossTop">
+      <span id="bossName">EVIL HATHAWAY</span>
+      <span id="bossHpText">100%</span>
+    </div>
+    <div id="bossBar"><div id="bossFill"></div></div>
+  </div>
+  <div id="bossAmbience"></div>
   <button id="playAgain">PLAY AGAIN</button>
   <img src="hathaway.jpeg" id="player" alt="player">
 </div>
 
 <script>
-const INTRO_KEY = "doYourWorkSeen";
 const ENEMY_SAFE_RADIUS = 240;
 
 const startScreen = document.getElementById("start");
@@ -141,7 +249,13 @@ const game = document.getElementById("game");
 const player = document.getElementById("player");
 const scoreEl = document.getElementById("score");
 const spdEl = document.getElementById("spd");
+const timeEl = document.getElementById("timeSurvived");
+const shieldStateEl = document.getElementById("shieldState");
 const playBtn = document.getElementById("playAgain");
+const bossUI = document.getElementById("bossUI");
+const bossFill = document.getElementById("bossFill");
+const bossHpText = document.getElementById("bossHpText");
+const bossAmbience = document.getElementById("bossAmbience");
 
 let x = window.innerWidth / 2;
 let y = window.innerHeight / 2;
@@ -162,6 +276,26 @@ let enemyTimer;
 let powerTimer;
 let kirkTimer;
 let pacingTimer;
+let bossMinionTimer;
+let bossBulletTimer;
+let bossOrbTimer;
+let boNixTimer;
+let clashTimer;
+
+let nextBossAt = 0;
+let bossActive = false;
+let bossEl = null;
+let bossX = 0;
+let bossY = 0;
+let bossVx = 0;
+let bossVy = 0;
+let bossDashFrames = 0;
+let bossDashCooldown = 180;
+let bossHp = 0;
+let bossMaxHp = 0;
+let hasShield = false;
+let shieldImmuneUntil = 0;
+let runStartedAt = 0;
 
 document.addEventListener("keydown", e => {
   keys[e.key] = true;
@@ -181,12 +315,25 @@ function clearTimers() {
   clearInterval(powerTimer);
   clearInterval(kirkTimer);
   clearInterval(pacingTimer);
+  clearInterval(bossMinionTimer);
+  clearInterval(bossBulletTimer);
+  clearInterval(bossOrbTimer);
+  clearInterval(boNixTimer);
+  clearInterval(clashTimer);
 }
 
 function startTimers() {
   enemyTimer = setInterval(() => spawn("enemy"), 2200);
   powerTimer = setInterval(() => spawn("power"), 16000);
   kirkTimer = setInterval(() => spawn("kirk"), 26000);
+  boNixTimer = setInterval(() => {
+    if (gameOver || cutsceneActive || hasShield) return;
+    if (document.querySelectorAll(".bonix").length === 0) spawn("bonix");
+  }, 20000);
+  clashTimer = setInterval(() => {
+    if (gameOver || cutsceneActive) return;
+    if (document.querySelectorAll(".clash").length === 0) spawn("clash");
+  }, 34000);
 
   // Slow long-term ramp so the game takes a while to get intense.
   pacingTimer = setInterval(() => {
@@ -198,7 +345,11 @@ function startTimers() {
 }
 
 function clearDynamicObjects() {
-  document.querySelectorAll(".orb,.enemy,.power,.kirk,.cutscene-overlay").forEach(el => el.remove());
+  document.querySelectorAll(".orb,.enemy,.power,.kirk,.bonix,.clash,.cutscene-overlay,.boss,.boss-bullet").forEach(el => el.remove());
+}
+
+function scheduleNextBoss() {
+  nextBossAt = Date.now() + 120000;
 }
 
 function resetState() {
@@ -218,13 +369,36 @@ function resetState() {
   gameOver = false;
   cutsceneActive = false;
   keys = {};
+  scheduleNextBoss();
+  bossActive = false;
+  bossEl = null;
+  bossX = 0;
+  bossY = 0;
+  bossVx = 0;
+  bossVy = 0;
+  bossDashFrames = 0;
+  bossDashCooldown = 180;
+  bossHp = 0;
+  bossMaxHp = 0;
+  hasShield = false;
+  shieldImmuneUntil = 0;
+  runStartedAt = Date.now();
 
   scoreEl.textContent = String(score);
   spdEl.textContent = speed.toFixed(1);
+  timeEl.textContent = "00:00";
+  shieldStateEl.textContent = "OFF";
+  shieldStateEl.style.color = "#ffd6d6";
   player.style.opacity = "1";
   player.style.left = x + "px";
   player.style.top = y + "px";
+  timeEl.textContent = formatTime(Date.now() - runStartedAt);
   playBtn.style.display = "none";
+  bossUI.style.display = "none";
+  bossFill.style.width = "100%";
+  bossHpText.textContent = "100%";
+  bossAmbience.style.display = "none";
+  game.classList.remove("boss-mode");
 }
 
 function restartGame() {
@@ -233,6 +407,19 @@ function restartGame() {
   startTimers();
   game.focus();
   requestAnimationFrame(loop);
+}
+
+function setShieldActive(active) {
+  hasShield = active;
+  shieldStateEl.textContent = active ? "ON" : "OFF";
+  shieldStateEl.style.color = active ? "#ffae42" : "#ffd6d6";
+}
+
+function formatTime(ms) {
+  const totalSec = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
 }
 
 function spawn(cls) {
@@ -259,6 +446,625 @@ function spawn(cls) {
   d.style.top = sy + "px";
   game.appendChild(d);
   return d;
+}
+
+function boNixCutscene() {
+  if (cutsceneActive || gameOver) return;
+  cutsceneActive = true;
+  invincible = true;
+
+  const overlay = document.createElement("div");
+  overlay.className = "cutscene-overlay";
+  overlay.style.position = "absolute";
+  overlay.style.inset = "0";
+  overlay.style.zIndex = "14500";
+  overlay.style.opacity = "0";
+  overlay.style.transition = "opacity 650ms ease";
+  overlay.style.overflow = "hidden";
+  overlay.style.background = "#100905";
+  game.appendChild(overlay);
+
+  const desert = document.createElement("img");
+  desert.src = "desert.jpeg";
+  desert.onerror = () => { desert.src = "ocean.jpeg"; };
+  desert.style.position = "absolute";
+  desert.style.inset = "-6%";
+  desert.style.width = "112%";
+  desert.style.height = "112%";
+  desert.style.objectFit = "cover";
+  desert.style.filter = "contrast(1.18) saturate(1.38) brightness(0.86)";
+  desert.style.transform = "scale(1.16)";
+  desert.style.transition = "transform 3200ms ease-out";
+  overlay.appendChild(desert);
+
+  const grade = document.createElement("div");
+  grade.style.position = "absolute";
+  grade.style.inset = "0";
+  grade.style.background = "linear-gradient(180deg, rgba(24,36,59,0.42) 0%, rgba(244,145,30,0.2) 47%, rgba(18,8,6,0.72) 100%)";
+  grade.style.mixBlendMode = "screen";
+  overlay.appendChild(grade);
+
+  const sun = document.createElement("div");
+  sun.style.position = "absolute";
+  sun.style.width = "320px";
+  sun.style.height = "320px";
+  sun.style.borderRadius = "50%";
+  sun.style.left = "71%";
+  sun.style.top = "8%";
+  sun.style.background = "radial-gradient(circle, rgba(255,240,196,1) 0%, rgba(255,174,63,0.95) 56%, rgba(255,122,23,0.15) 100%)";
+  sun.style.boxShadow = "0 0 120px rgba(255,186,84,0.95)";
+  sun.style.opacity = "0.85";
+  overlay.appendChild(sun);
+
+  const flare = document.createElement("div");
+  flare.style.position = "absolute";
+  flare.style.left = "0";
+  flare.style.top = "0";
+  flare.style.width = "100%";
+  flare.style.height = "100%";
+  flare.style.background = "radial-gradient(circle at 68% 20%, rgba(255,224,155,0.35), rgba(0,0,0,0) 36%)";
+  flare.style.mixBlendMode = "screen";
+  overlay.appendChild(flare);
+
+  const barTop = document.createElement("div");
+  barTop.style.position = "absolute";
+  barTop.style.top = "0";
+  barTop.style.left = "0";
+  barTop.style.width = "100%";
+  barTop.style.height = "0";
+  barTop.style.background = "#000";
+  barTop.style.transition = "height 450ms ease";
+  barTop.style.zIndex = "2";
+  overlay.appendChild(barTop);
+
+  const barBottom = document.createElement("div");
+  barBottom.style.position = "absolute";
+  barBottom.style.bottom = "0";
+  barBottom.style.left = "0";
+  barBottom.style.width = "100%";
+  barBottom.style.height = "0";
+  barBottom.style.background = "#000";
+  barBottom.style.transition = "height 450ms ease";
+  barBottom.style.zIndex = "2";
+  overlay.appendChild(barBottom);
+
+  const horseWrap = document.createElement("div");
+  horseWrap.style.position = "absolute";
+  horseWrap.style.width = "480px";
+  horseWrap.style.height = "300px";
+  horseWrap.style.left = "-560px";
+  horseWrap.style.bottom = "12%";
+  horseWrap.style.transition = "left 1850ms cubic-bezier(.08,.86,.16,1), transform 1850ms cubic-bezier(.08,.86,.16,1)";
+  horseWrap.style.zIndex = "3";
+  overlay.appendChild(horseWrap);
+
+  const horse = document.createElement("img");
+  horse.src = "horse.jpeg";
+  horse.onerror = () => { horse.src = "kirk.jpeg"; };
+  horse.style.position = "absolute";
+  horse.style.left = "0";
+  horse.style.bottom = "0";
+  horse.style.width = "420px";
+  horse.style.height = "240px";
+  horse.style.objectFit = "cover";
+  horse.style.borderRadius = "14px";
+  horse.style.filter = "contrast(1.14) saturate(1.2) drop-shadow(0 0 20px rgba(255,164,68,0.7))";
+  horseWrap.appendChild(horse);
+
+  const rider = document.createElement("img");
+  rider.src = "nix.jpeg";
+  rider.onerror = () => { rider.src = "kirk.jpeg"; };
+  rider.style.position = "absolute";
+  rider.style.width = "96px";
+  rider.style.height = "96px";
+  rider.style.objectFit = "cover";
+  rider.style.borderRadius = "14px";
+  rider.style.left = "170px";
+  rider.style.top = "42px";
+  rider.style.boxShadow = "0 0 30px rgba(255,188,86,0.95)";
+  rider.style.filter = "saturate(1.28) contrast(1.12)";
+  horseWrap.appendChild(rider);
+
+  const speedLines = document.createElement("div");
+  speedLines.style.position = "absolute";
+  speedLines.style.inset = "0";
+  speedLines.style.background = "repeating-linear-gradient(90deg, rgba(255,188,95,0.14) 0 2px, transparent 2px 22px)";
+  speedLines.style.opacity = "0";
+  speedLines.style.transition = "opacity 180ms linear";
+  speedLines.style.mixBlendMode = "screen";
+  overlay.appendChild(speedLines);
+
+  const dust = [];
+  for (let i = 0; i < 50; i++) {
+    const d = document.createElement("div");
+    const size = 2 + Math.random() * 7;
+    d.style.position = "absolute";
+    d.style.width = size + "px";
+    d.style.height = size + "px";
+    d.style.borderRadius = "50%";
+    d.style.background = i % 3 ? "rgba(255,190,120,0.75)" : "rgba(255,228,178,0.82)";
+    d.style.boxShadow = "0 0 12px rgba(255,188,112,0.72)";
+    overlay.appendChild(d);
+    dust.push({
+      el: d,
+      x: Math.random() * window.innerWidth,
+      y: window.innerHeight * (0.46 + Math.random() * 0.48),
+      vx: 1.2 + Math.random() * 4.6,
+      vy: -0.08 - Math.random() * 0.35
+    });
+  }
+
+  const title = document.createElement("div");
+  title.textContent = "SHIELD OF BO NIX";
+  title.style.position = "absolute";
+  title.style.left = "50%";
+  title.style.top = "16%";
+  title.style.transform = "translate(-50%,-50%)";
+  title.style.fontFamily = "monospace";
+  title.style.fontSize = "clamp(22px,4.8vw,52px)";
+  title.style.letterSpacing = "5px";
+  title.style.color = "#fff2cf";
+  title.style.textShadow = "0 0 34px rgba(255,191,98,1)";
+  title.style.opacity = "0";
+  title.style.transition = "opacity 500ms ease";
+  title.style.zIndex = "3";
+  overlay.appendChild(title);
+
+  const subtitle = document.createElement("div");
+  subtitle.textContent = "RIDES THROUGH THE DUNES";
+  subtitle.style.position = "absolute";
+  subtitle.style.left = "50%";
+  subtitle.style.top = "24%";
+  subtitle.style.transform = "translate(-50%,-50%)";
+  subtitle.style.fontFamily = "monospace";
+  subtitle.style.fontSize = "clamp(12px,2.2vw,22px)";
+  subtitle.style.letterSpacing = "3px";
+  subtitle.style.color = "#ffe4b3";
+  subtitle.style.textShadow = "0 0 16px rgba(255,182,84,0.9)";
+  subtitle.style.opacity = "0";
+  subtitle.style.transition = "opacity 500ms ease";
+  subtitle.style.zIndex = "3";
+  overlay.appendChild(subtitle);
+
+  let running = true;
+  function animateDust() {
+    if (!running) return;
+    dust.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.x > window.innerWidth + 24) {
+        p.x = -30;
+        p.y = window.innerHeight * (0.45 + Math.random() * 0.5);
+      }
+      p.el.style.transform = `translate(${p.x}px,${p.y}px)`;
+    });
+    requestAnimationFrame(animateDust);
+  }
+  requestAnimationFrame(animateDust);
+
+  let shake = 0;
+  function animateShake() {
+    if (!running) return;
+    overlay.style.transform = shake > 0 ? `translate(${(Math.random() - 0.5) * shake}px, ${(Math.random() - 0.5) * shake}px)` : "translate(0,0)";
+    shake *= 0.9;
+    requestAnimationFrame(animateShake);
+  }
+  requestAnimationFrame(animateShake);
+
+  setTimeout(() => { overlay.style.opacity = "1"; }, 20);
+  setTimeout(() => {
+    barTop.style.height = "9%";
+    barBottom.style.height = "9%";
+    title.style.opacity = "1";
+    subtitle.style.opacity = "1";
+    desert.style.transform = "scale(1)";
+  }, 220);
+  setTimeout(() => {
+    speedLines.style.opacity = "0.78";
+    horseWrap.style.left = "68%";
+    horseWrap.style.transform = "translateX(-50px)";
+    shake = 5;
+  }, 480);
+  setTimeout(() => {
+    speedLines.style.opacity = "0.25";
+    shake = 9;
+    const whiteFlash = document.createElement("div");
+    whiteFlash.style.position = "absolute";
+    whiteFlash.style.inset = "0";
+    whiteFlash.style.background = "#ffe8bf";
+    whiteFlash.style.opacity = "0.92";
+    whiteFlash.style.transition = "opacity 180ms linear";
+    overlay.appendChild(whiteFlash);
+    setTimeout(() => { whiteFlash.style.opacity = "0"; }, 40);
+    setTimeout(() => whiteFlash.remove(), 260);
+  }, 1760);
+  setTimeout(() => {
+    barTop.style.height = "0";
+    barBottom.style.height = "0";
+    overlay.style.opacity = "0";
+  }, 3150);
+  setTimeout(() => {
+    running = false;
+    overlay.remove();
+    cutsceneActive = false;
+    invincible = false;
+  }, 3800);
+}
+
+function consumeShieldHit(source, removeSource) {
+  if (Date.now() < shieldImmuneUntil) return true;
+  if (!hasShield) return false;
+  setShieldActive(false);
+  shieldImmuneUntil = Date.now() + 700;
+  if (removeSource && source) source.remove();
+
+  const pulse = document.createElement("div");
+  pulse.style.position = "absolute";
+  pulse.style.left = (x + 30) + "px";
+  pulse.style.top = (y + 30) + "px";
+  pulse.style.width = "24px";
+  pulse.style.height = "24px";
+  pulse.style.border = "3px solid rgba(255,160,40,0.95)";
+  pulse.style.borderRadius = "50%";
+  pulse.style.transform = "translate(-50%,-50%) scale(0.35)";
+  pulse.style.opacity = "1";
+  pulse.style.pointerEvents = "none";
+  pulse.style.zIndex = "13050";
+  game.appendChild(pulse);
+  let s = 0.35;
+  let o = 1;
+  function animate() {
+    s += 0.18;
+    o -= 0.045;
+    pulse.style.transform = `translate(-50%,-50%) scale(${s})`;
+    pulse.style.opacity = o;
+    if (o > 0) requestAnimationFrame(animate);
+    else pulse.remove();
+  }
+  animate();
+  return true;
+}
+
+function spawnEnemyNearBoss() {
+  if (!bossActive || !bossEl) return;
+  const e = document.createElement("div");
+  e.className = "enemy";
+  const ang = Math.random() * Math.PI * 2;
+  const r = 140 + Math.random() * 120;
+  let sx = bossX + Math.cos(ang) * r;
+  let sy = bossY + Math.sin(ang) * r;
+  sx = Math.max(10, Math.min(window.innerWidth - 42, sx));
+  sy = Math.max(10, Math.min(window.innerHeight - 42, sy));
+  const dx = sx - x;
+  const dy = sy - y;
+  const d = Math.sqrt(dx * dx + dy * dy);
+  if (d < ENEMY_SAFE_RADIUS * 0.8) {
+    sx = x + (dx / (d || 1)) * ENEMY_SAFE_RADIUS * 0.8;
+    sy = y + (dy / (d || 1)) * ENEMY_SAFE_RADIUS * 0.8;
+  }
+  e.style.left = sx + "px";
+  e.style.top = sy + "px";
+  game.appendChild(e);
+}
+
+function spawnBossBullet() {
+  if (!bossActive || !bossEl) return;
+  const b = document.createElement("div");
+  b.className = "boss-bullet";
+  const bx = bossX + 60;
+  const by = bossY + 60;
+  const dx = x - bx;
+  const dy = y - by;
+  const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+  const bv = 4.3;
+  b.dataset.vx = ((dx / dist) * bv).toString();
+  b.dataset.vy = ((dy / dist) * bv).toString();
+  b.style.left = (bx - 9) + "px";
+  b.style.top = (by - 9) + "px";
+  game.appendChild(b);
+}
+
+function updateBossUI() {
+  if (!bossActive) return;
+  const pct = Math.max(0, Math.round((bossHp / bossMaxHp) * 100));
+  bossFill.style.width = pct + "%";
+  bossHpText.textContent = pct + "%";
+}
+
+function beginBossPhase() {
+  clearInterval(enemyTimer);
+  clearInterval(powerTimer);
+  clearInterval(kirkTimer);
+
+  document.querySelectorAll(".enemy,.power,.kirk,.bonix,.clash").forEach(el => el.remove());
+  document.querySelectorAll(".orb").forEach(el => el.remove());
+
+  bossMaxHp = 34;
+  bossHp = bossMaxHp;
+  bossX = Math.random() * (window.innerWidth - 160) + 20;
+  bossY = 20;
+  bossDashFrames = 0;
+  bossDashCooldown = 120;
+  bossVx = 0;
+  bossVy = 0;
+
+  bossEl = document.createElement("img");
+  bossEl.src = "hathaway.jpeg";
+  bossEl.className = "boss";
+  bossEl.style.left = bossX + "px";
+  bossEl.style.top = bossY + "px";
+  game.appendChild(bossEl);
+
+  bossUI.style.display = "block";
+  bossAmbience.style.display = "block";
+  game.classList.add("boss-mode");
+  updateBossUI();
+
+  for (let i = 0; i < 6; i++) spawn("orb");
+
+  bossMinionTimer = setInterval(() => {
+    if (!bossActive || gameOver) return;
+    spawnEnemyNearBoss();
+    if (Math.random() < 0.55) spawnEnemyNearBoss();
+  }, 3300);
+
+  bossBulletTimer = setInterval(() => {
+    if (!bossActive || gameOver) return;
+    spawnBossBullet();
+    if (Math.random() < 0.35) {
+      setTimeout(() => spawnBossBullet(), 180);
+    }
+  }, 1350);
+
+  bossOrbTimer = setInterval(() => {
+    if (!bossActive || gameOver) return;
+    if (document.querySelectorAll(".orb").length < 9) spawn("orb");
+  }, 900);
+}
+
+function startBossIntro() {
+  cutsceneActive = true;
+  invincible = true;
+
+  const overlay = document.createElement("div");
+  overlay.className = "cutscene-overlay";
+  overlay.style.position = "absolute";
+  overlay.style.inset = "0";
+  overlay.style.zIndex = "13000";
+  overlay.style.opacity = "0";
+  overlay.style.transition = "opacity 500ms ease";
+  overlay.style.background = "radial-gradient(circle at center, rgba(140,0,0,0.5) 0%, rgba(0,0,0,0.95) 70%)";
+  overlay.style.overflow = "hidden";
+  game.appendChild(overlay);
+
+  const warning = document.createElement("div");
+  warning.textContent = "EVIL HATHAWAY HAS ARRIVED";
+  warning.style.position = "absolute";
+  warning.style.top = "18%";
+  warning.style.left = "50%";
+  warning.style.transform = "translate(-50%, -50%) scale(0.8)";
+  warning.style.fontFamily = "monospace";
+  warning.style.fontSize = "clamp(20px,4vw,42px)";
+  warning.style.letterSpacing = "4px";
+  warning.style.color = "#ffd5d5";
+  warning.style.textShadow = "0 0 24px rgba(255, 75, 75, 0.9)";
+  warning.style.opacity = "0";
+  warning.style.transition = "all 700ms ease";
+  overlay.appendChild(warning);
+
+  const face = document.createElement("img");
+  face.src = "hathaway.jpeg";
+  face.style.position = "absolute";
+  face.style.left = "50%";
+  face.style.top = "56%";
+  face.style.width = "300px";
+  face.style.height = "300px";
+  face.style.objectFit = "cover";
+  face.style.borderRadius = "14px";
+  face.style.transform = "translate(-50%,-50%) scale(0.45)";
+  face.style.filter = "brightness(0.65) contrast(1.2) saturate(1.2) blur(4px)";
+  face.style.boxShadow = "0 0 40px rgba(255, 40, 40, 0.75)";
+  face.style.transition = "all 1.2s cubic-bezier(.2,.75,.2,1)";
+  overlay.appendChild(face);
+
+  const flash = document.createElement("div");
+  flash.style.position = "absolute";
+  flash.style.inset = "0";
+  flash.style.background = "#ffd8d8";
+  flash.style.opacity = "0";
+  flash.style.transition = "opacity 120ms linear";
+  overlay.appendChild(flash);
+
+  setTimeout(() => { overlay.style.opacity = "1"; }, 20);
+  setTimeout(() => {
+    warning.style.opacity = "1";
+    warning.style.transform = "translate(-50%, -50%) scale(1)";
+  }, 240);
+  setTimeout(() => {
+    face.style.transform = "translate(-50%,-50%) scale(1)";
+    face.style.filter = "brightness(1.05) contrast(1.26) saturate(1.35) blur(0)";
+  }, 450);
+  setTimeout(() => {
+    flash.style.opacity = "0.95";
+    setTimeout(() => { flash.style.opacity = "0"; }, 70);
+  }, 1350);
+  setTimeout(() => { overlay.style.opacity = "0"; }, 2500);
+  setTimeout(() => {
+    overlay.remove();
+    cutsceneActive = false;
+    invincible = false;
+    beginBossPhase();
+  }, 3050);
+}
+
+function startBossFight() {
+  if (bossActive || gameOver || cutsceneActive) return;
+  clearInterval(enemyTimer);
+  clearInterval(powerTimer);
+  clearInterval(kirkTimer);
+  bossActive = true;
+  startBossIntro();
+}
+
+function kirkFinisherCutscene() {
+  if (!bossActive || !bossEl || cutsceneActive) return;
+  cutsceneActive = true;
+  invincible = true;
+  clearInterval(bossMinionTimer);
+  clearInterval(bossBulletTimer);
+  clearInterval(bossOrbTimer);
+
+  const rect = bossEl.getBoundingClientRect();
+  bossEl.style.opacity = "0";
+
+  const overlay = document.createElement("div");
+  overlay.className = "cutscene-overlay";
+  overlay.style.position = "absolute";
+  overlay.style.inset = "0";
+  overlay.style.zIndex = "14000";
+  overlay.style.opacity = "0";
+  overlay.style.transition = "opacity 350ms ease";
+  overlay.style.background = "radial-gradient(circle at center, rgba(24,30,52,0.45) 0%, rgba(0,0,0,0.92) 72%)";
+  overlay.style.overflow = "hidden";
+  game.appendChild(overlay);
+
+  const label = document.createElement("div");
+  label.textContent = "CHARLIE KIRK // HAMMER OF JUDGMENT";
+  label.style.position = "absolute";
+  label.style.top = "14%";
+  label.style.left = "50%";
+  label.style.transform = "translate(-50%, -50%)";
+  label.style.fontFamily = "monospace";
+  label.style.fontSize = "clamp(18px,2.8vw,30px)";
+  label.style.letterSpacing = "3px";
+  label.style.color = "#c9ffe0";
+  label.style.textShadow = "0 0 22px rgba(96,255,178,0.85)";
+  overlay.appendChild(label);
+
+  const kirk = document.createElement("img");
+  kirk.src = "kirk.jpeg";
+  kirk.style.position = "absolute";
+  kirk.style.left = "-320px";
+  kirk.style.top = Math.max(40, rect.top - 40) + "px";
+  kirk.style.width = "300px";
+  kirk.style.height = "300px";
+  kirk.style.objectFit = "cover";
+  kirk.style.borderRadius = "14px";
+  kirk.style.filter = "drop-shadow(0 0 28px rgba(150,255,200,0.95))";
+  kirk.style.transition = "left 700ms cubic-bezier(.16,.84,.22,1)";
+  overlay.appendChild(kirk);
+
+  const hammer = document.createElement("img");
+  hammer.src = "hammer.jpeg";
+  hammer.onerror = () => {
+    hammer.style.background = "linear-gradient(180deg, #5e4a35, #2f2418)";
+  };
+  hammer.style.position = "absolute";
+  hammer.style.left = (rect.left + rect.width / 2 - 20) + "px";
+  hammer.style.top = (rect.top - 180) + "px";
+  hammer.style.width = "120px";
+  hammer.style.height = "240px";
+  hammer.style.objectFit = "contain";
+  hammer.style.transformOrigin = "20px 220px";
+  hammer.style.transform = "rotate(-95deg)";
+  hammer.style.borderRadius = "8px";
+  hammer.style.boxShadow = "0 0 18px rgba(0,0,0,0.7)";
+  hammer.style.transition = "transform 260ms cubic-bezier(.2,.8,.2,1)";
+  overlay.appendChild(hammer);
+
+  setTimeout(() => { overlay.style.opacity = "1"; }, 20);
+  setTimeout(() => { kirk.style.left = (rect.left - 190) + "px"; }, 250);
+  setTimeout(() => {
+    hammer.style.transform = "rotate(22deg)";
+    animeDeathBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, overlay);
+  }, 980);
+  setTimeout(() => { overlay.style.opacity = "0"; }, 1650);
+  setTimeout(() => {
+    overlay.remove();
+    cutsceneActive = false;
+    invincible = false;
+    endBossFight(true);
+  }, 2050);
+}
+
+function endBossFight(victory) {
+  clearInterval(bossMinionTimer);
+  clearInterval(bossBulletTimer);
+  clearInterval(bossOrbTimer);
+  bossMinionTimer = undefined;
+  bossBulletTimer = undefined;
+  bossOrbTimer = undefined;
+
+  if (bossEl) {
+    const rect = bossEl.getBoundingClientRect();
+    animeDeathBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, game);
+    bossEl.remove();
+  }
+  bossEl = null;
+  bossActive = false;
+  bossUI.style.display = "none";
+  bossAmbience.style.display = "none";
+  game.classList.remove("boss-mode");
+  document.querySelectorAll(".boss-bullet").forEach(el => el.remove());
+
+  if (victory) {
+    score += 250;
+    scoreEl.textContent = String(score);
+    speed += 7;
+    spdEl.textContent = speed.toFixed(1);
+  }
+
+  if (!gameOver) {
+    enemyTimer = setInterval(() => spawn("enemy"), 2200);
+    powerTimer = setInterval(() => spawn("power"), 16000);
+    kirkTimer = setInterval(() => spawn("kirk"), 26000);
+    boNixTimer = setInterval(() => {
+      if (gameOver || cutsceneActive || hasShield) return;
+      if (document.querySelectorAll(".bonix").length === 0) spawn("bonix");
+    }, 20000);
+    clashTimer = setInterval(() => {
+      if (gameOver || cutsceneActive) return;
+      if (document.querySelectorAll(".clash").length === 0) spawn("clash");
+    }, 34000);
+    scheduleNextBoss();
+  }
+}
+
+function updateBoss() {
+  if (!bossActive || !bossEl) return;
+
+  const cx = bossX + 60;
+  const cy = bossY + 60;
+  const dx = x - cx;
+  const dy = y - cy;
+  const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+  const hpFactor = 1 - bossHp / bossMaxHp;
+  const chase = 0.95 + hpFactor * 1.15;
+
+  if (bossDashFrames > 0) {
+    bossX += bossVx;
+    bossY += bossVy;
+    bossDashFrames--;
+  } else {
+    bossX += (dx / dist) * chase;
+    bossY += (dy / dist) * chase;
+    bossDashCooldown--;
+    if (bossDashCooldown <= 0) {
+      const dashSpeed = 5.2 + hpFactor * 1.2;
+      bossVx = (dx / dist) * dashSpeed;
+      bossVy = (dy / dist) * dashSpeed;
+      bossDashFrames = 22;
+      bossDashCooldown = 140 - Math.floor(hpFactor * 45);
+      spawnBossBullet();
+    }
+  }
+
+  bossX = Math.max(0, Math.min(window.innerWidth - 120, bossX));
+  bossY = Math.max(0, Math.min(window.innerHeight - 120, bossY));
+  bossEl.style.left = bossX + "px";
+  bossEl.style.top = bossY + "px";
+
+  if (!invincible && collide(player, bossEl) && !consumeShieldHit(null, false)) death();
 }
 
 function collide(a, b) {
@@ -660,11 +1466,16 @@ function kirk() {
   overlay.appendChild(sigilInner);
 
   const undead = [];
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 72; i++) {
     const e = document.createElement("div");
     e.className = "enemy";
-    const ex = Math.random() * (window.innerWidth - 60) + 10;
-    const ey = window.innerHeight - (40 + Math.random() * 90);
+    let ex = 0;
+    let ey = 0;
+    const side = i % 4;
+    if (side === 0) { ex = Math.random() * (window.innerWidth - 60); ey = -40; }
+    if (side === 1) { ex = window.innerWidth + 20; ey = Math.random() * (window.innerHeight - 60); }
+    if (side === 2) { ex = Math.random() * (window.innerWidth - 60); ey = window.innerHeight + 20; }
+    if (side === 3) { ex = -40; ey = Math.random() * (window.innerHeight - 60); }
     e.style.left = ex + "px";
     e.style.top = ey + "px";
     e.style.opacity = "0";
@@ -710,7 +1521,7 @@ function kirk() {
         }
         fly();
       }
-    }, 750 + Math.random() * 1300);
+    }, 350 + Math.random() * 950);
   }
 
   let glowPulse = 0;
@@ -755,11 +1566,140 @@ function kirk() {
 
   setTimeout(() => {
     invincible = false;
-  }, 5000);
+  }, 3000);
+}
+
+function roninNecroClash() {
+  if (cutsceneActive || gameOver) return;
+  cutsceneActive = true;
+  invincible = true;
+  score += 100;
+  speed += 12;
+  scoreEl.textContent = String(score);
+  spdEl.textContent = speed.toFixed(1);
+
+  const overlay = document.createElement("div");
+  overlay.className = "cutscene-overlay";
+  overlay.style.position = "absolute";
+  overlay.style.inset = "0";
+  overlay.style.zIndex = "15000";
+  overlay.style.opacity = "0";
+  overlay.style.transition = "opacity 350ms ease";
+  overlay.style.overflow = "hidden";
+  overlay.style.background = "radial-gradient(circle at center, rgba(255,232,74,0.16) 0%, rgba(146,55,255,0.2) 45%, rgba(0,0,0,0.94) 78%)";
+  game.appendChild(overlay);
+
+  const stripe = document.createElement("div");
+  stripe.style.position = "absolute";
+  stripe.style.inset = "0";
+  stripe.style.background = "repeating-linear-gradient(110deg, rgba(255,227,74,0.08) 0 12px, rgba(156,60,255,0.12) 12px 26px)";
+  stripe.style.mixBlendMode = "screen";
+  overlay.appendChild(stripe);
+
+  const dev = document.createElement("img");
+  dev.src = "devito.jpeg";
+  dev.style.position = "absolute";
+  dev.style.left = "24%";
+  dev.style.top = "54%";
+  dev.style.width = "290px";
+  dev.style.height = "290px";
+  dev.style.objectFit = "cover";
+  dev.style.borderRadius = "14px";
+  dev.style.transform = "translate(-50%,-50%) scale(0.72) rotate(-10deg)";
+  dev.style.filter = "drop-shadow(0 0 28px rgba(255,223,92,0.95))";
+  dev.style.transition = "transform 900ms cubic-bezier(.2,.85,.2,1)";
+  overlay.appendChild(dev);
+
+  const kir = document.createElement("img");
+  kir.src = "kirk.jpeg";
+  kir.style.position = "absolute";
+  kir.style.left = "76%";
+  kir.style.top = "54%";
+  kir.style.width = "290px";
+  kir.style.height = "290px";
+  kir.style.objectFit = "cover";
+  kir.style.borderRadius = "14px";
+  kir.style.transform = "translate(-50%,-50%) scale(0.72) rotate(10deg)";
+  kir.style.filter = "drop-shadow(0 0 30px rgba(164,93,255,0.95))";
+  kir.style.transition = "transform 900ms cubic-bezier(.2,.85,.2,1)";
+  overlay.appendChild(kir);
+
+  const clashText = document.createElement("div");
+  clashText.textContent = "BLOSSOM RONIN // VS // MOONLIT NECROMANCER";
+  clashText.style.position = "absolute";
+  clashText.style.left = "50%";
+  clashText.style.top = "16%";
+  clashText.style.transform = "translate(-50%,-50%)";
+  clashText.style.fontFamily = "monospace";
+  clashText.style.fontSize = "clamp(14px,2.3vw,30px)";
+  clashText.style.letterSpacing = "3px";
+  clashText.style.color = "#fff3a4";
+  clashText.style.textShadow = "0 0 24px rgba(255,225,74,0.95), 0 0 28px rgba(156,60,255,0.85)";
+  clashText.style.opacity = "0";
+  clashText.style.transition = "opacity 400ms ease";
+  overlay.appendChild(clashText);
+
+  const summoned = [];
+  for (let i = 0; i < 100; i++) {
+    const e = document.createElement("div");
+    e.className = "enemy";
+    const side = i % 4;
+    const margin = 34;
+    let ex = 0;
+    let ey = 0;
+    if (side === 0) { ex = Math.random() * window.innerWidth; ey = -margin; }
+    if (side === 1) { ex = window.innerWidth + margin; ey = Math.random() * window.innerHeight; }
+    if (side === 2) { ex = Math.random() * window.innerWidth; ey = window.innerHeight + margin; }
+    if (side === 3) { ex = -margin; ey = Math.random() * window.innerHeight; }
+    e.style.left = ex + "px";
+    e.style.top = ey + "px";
+    e.style.opacity = "0";
+    e.style.transform = "scale(0.25)";
+    e.style.transition = "transform 420ms ease, opacity 300ms ease";
+    game.appendChild(e);
+    summoned.push(e);
+    setTimeout(() => {
+      e.style.opacity = "1";
+      e.style.transform = "scale(1)";
+    }, 200 + Math.random() * 700);
+  }
+
+  setTimeout(() => { overlay.style.opacity = "1"; }, 20);
+  setTimeout(() => {
+    clashText.style.opacity = "1";
+    dev.style.transform = "translate(-50%,-50%) scale(1.02) rotate(-4deg)";
+    kir.style.transform = "translate(-50%,-50%) scale(1.02) rotate(4deg)";
+  }, 260);
+
+  setTimeout(() => {
+    const flash = document.createElement("div");
+    flash.style.position = "absolute";
+    flash.style.inset = "0";
+    flash.style.background = "linear-gradient(90deg, rgba(255,233,102,0.9), rgba(163,78,255,0.9))";
+    flash.style.opacity = "0.9";
+    flash.style.transition = "opacity 220ms linear";
+    overlay.appendChild(flash);
+    setTimeout(() => { flash.style.opacity = "0"; }, 50);
+    setTimeout(() => flash.remove(), 320);
+
+    document.querySelectorAll(".enemy").forEach(e => {
+      const r = e.getBoundingClientRect();
+      animeDeathBurst(r.left + r.width / 2, r.top + r.height / 2, overlay);
+      e.remove();
+    });
+  }, 2050);
+
+  setTimeout(() => { overlay.style.opacity = "0"; }, 2900);
+  setTimeout(() => {
+    overlay.remove();
+    cutsceneActive = false;
+    invincible = false;
+  }, 3350);
 }
 
 function death() {
   gameOver = true;
+  if (bossActive) endBossFight(false);
   clearTimers();
   player.style.opacity = "0";
 
@@ -826,6 +1766,29 @@ function loop() {
   player.style.left = x + "px";
   player.style.top = y + "px";
 
+  if (!bossActive && !cutsceneActive) {
+    if (Date.now() >= nextBossAt) {
+      startBossFight();
+    }
+  }
+
+  updateBoss();
+
+  document.querySelectorAll(".boss-bullet").forEach(b => {
+    const vx = parseFloat(b.dataset.vx || "0");
+    const vy = parseFloat(b.dataset.vy || "0");
+    const bx = parseFloat(b.style.left) + vx;
+    const by = parseFloat(b.style.top) + vy;
+    b.style.left = bx + "px";
+    b.style.top = by + "px";
+
+    if (bx < -30 || by < -30 || bx > window.innerWidth + 30 || by > window.innerHeight + 30) {
+      b.remove();
+      return;
+    }
+    if (!invincible && collide(player, b) && !consumeShieldHit(b, true)) death();
+  });
+
   document.querySelectorAll(".enemy").forEach(e => {
     let ex = parseFloat(e.style.left);
     let ey = parseFloat(e.style.top);
@@ -836,7 +1799,7 @@ function loop() {
     ey += (dy / dist) * enemySpeed;
     e.style.left = ex + "px";
     e.style.top = ey + "px";
-    if (!invincible && collide(player, e)) death();
+    if (!invincible && collide(player, e) && !consumeShieldHit(e, true)) death();
   });
 
   document.querySelectorAll(".orb").forEach(o => {
@@ -847,6 +1810,11 @@ function loop() {
       enemySpeed += 0.03;
       scoreEl.textContent = score;
       spdEl.textContent = speed.toFixed(1);
+      if (bossActive) {
+        bossHp -= 1;
+        updateBossUI();
+        if (bossHp <= 0) kirkFinisherCutscene();
+      }
       spawn("orb");
     }
   });
@@ -862,6 +1830,23 @@ function loop() {
     if (collide(player, k)) {
       k.remove();
       kirk();
+    }
+  });
+
+  document.querySelectorAll(".bonix").forEach(bn => {
+    if (collide(player, bn)) {
+      bn.remove();
+      if (!hasShield) {
+        setShieldActive(true);
+        boNixCutscene();
+      }
+    }
+  });
+
+  document.querySelectorAll(".clash").forEach(c => {
+    if (collide(player, c)) {
+      c.remove();
+      roninNecroClash();
     }
   });
 
@@ -881,13 +1866,8 @@ function startGame() {
 }
 
 startO.addEventListener("click", () => {
-  localStorage.setItem(INTRO_KEY, "1");
   startGame();
 });
-
-if (localStorage.getItem(INTRO_KEY) === "1") {
-  startGame();
-}
 </script>
 </body>
 </html>
