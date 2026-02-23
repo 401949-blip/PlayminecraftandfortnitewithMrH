@@ -1573,6 +1573,11 @@ function roninNecroClash() {
   if (cutsceneActive || gameOver) return;
   cutsceneActive = true;
   invincible = true;
+  keys = {};
+  x = window.innerWidth / 2;
+  y = window.innerHeight / 2;
+  player.style.left = x + "px";
+  player.style.top = y + "px";
   score += 100;
   speed += 12;
   scoreEl.textContent = String(score);
@@ -1620,7 +1625,7 @@ function roninNecroClash() {
   kir.style.objectFit = "cover";
   kir.style.borderRadius = "14px";
   kir.style.transform = "translate(-50%,-50%) scale(0.72) rotate(10deg)";
-  kir.style.filter = "drop-shadow(0 0 30px rgba(164,93,255,0.95))";
+  kir.style.filter = "hue-rotate(108deg) saturate(1.45) brightness(1.08) drop-shadow(0 0 32px rgba(108,255,160,0.95))";
   kir.style.transition = "transform 900ms cubic-bezier(.2,.85,.2,1)";
   overlay.appendChild(kir);
 
@@ -1640,6 +1645,8 @@ function roninNecroClash() {
   overlay.appendChild(clashText);
 
   const summoned = [];
+  const centerX = x + 30;
+  const centerY = y + 30;
   for (let i = 0; i < 100; i++) {
     const e = document.createElement("div");
     e.className = "enemy";
@@ -1653,16 +1660,30 @@ function roninNecroClash() {
     if (side === 3) { ex = -margin; ey = Math.random() * window.innerHeight; }
     e.style.left = ex + "px";
     e.style.top = ey + "px";
-    e.style.opacity = "0";
-    e.style.transform = "scale(0.25)";
-    e.style.transition = "transform 420ms ease, opacity 300ms ease";
+    e.style.opacity = "1";
+    e.style.transform = "scale(0.72)";
     game.appendChild(e);
-    summoned.push(e);
-    setTimeout(() => {
-      e.style.opacity = "1";
-      e.style.transform = "scale(1)";
-    }, 200 + Math.random() * 700);
+    const dx = centerX - ex;
+    const dy = centerY - ey;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    const v = 2.0 + Math.random() * 1.4;
+    summoned.push({ el: e, x: ex, y: ey, vx: (dx / dist) * v, vy: (dy / dist) * v });
   }
+
+  const panic = document.createElement("div");
+  panic.textContent = "TRAPPED";
+  panic.style.position = "absolute";
+  panic.style.left = "50%";
+  panic.style.top = "84%";
+  panic.style.transform = "translate(-50%,-50%)";
+  panic.style.fontFamily = "monospace";
+  panic.style.fontSize = "clamp(16px,2.8vw,34px)";
+  panic.style.letterSpacing = "5px";
+  panic.style.color = "#ffd6d6";
+  panic.style.textShadow = "0 0 22px rgba(255,88,88,0.95)";
+  panic.style.opacity = "0";
+  panic.style.transition = "opacity 220ms ease";
+  overlay.appendChild(panic);
 
   setTimeout(() => { overlay.style.opacity = "1"; }, 20);
   setTimeout(() => {
@@ -1670,6 +1691,21 @@ function roninNecroClash() {
     dev.style.transform = "translate(-50%,-50%) scale(1.02) rotate(-4deg)";
     kir.style.transform = "translate(-50%,-50%) scale(1.02) rotate(4deg)";
   }, 260);
+
+  let clashRunning = true;
+  function closeIn() {
+    if (!clashRunning) return;
+    summoned.forEach(obj => {
+      obj.x += obj.vx;
+      obj.y += obj.vy;
+      obj.el.style.left = obj.x + "px";
+      obj.el.style.top = obj.y + "px";
+    });
+    requestAnimationFrame(closeIn);
+  }
+  requestAnimationFrame(closeIn);
+
+  setTimeout(() => { panic.style.opacity = "1"; }, 1250);
 
   setTimeout(() => {
     const flash = document.createElement("div");
@@ -1691,6 +1727,7 @@ function roninNecroClash() {
 
   setTimeout(() => { overlay.style.opacity = "0"; }, 2900);
   setTimeout(() => {
+    clashRunning = false;
     overlay.remove();
     cutsceneActive = false;
     invincible = false;
@@ -1701,6 +1738,8 @@ function death() {
   gameOver = true;
   if (bossActive) endBossFight(false);
   clearTimers();
+  runStartedAt = Date.now();
+  timeEl.textContent = "00:00";
   player.style.opacity = "0";
 
   for (let i = 0; i < 60; i++) {
@@ -1737,6 +1776,7 @@ function death() {
 
 function loop() {
   if (gameOver) return;
+  timeEl.textContent = formatTime(Date.now() - runStartedAt);
   if (cutsceneActive) {
     requestAnimationFrame(loop);
     return;
