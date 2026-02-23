@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Do Your Work</title>
+<style>
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #0b0b0b;
+  font-family: Courier, monospace;
+}
+
+#start {
+  position: fixed;
+  inset: 0;
+  background: url('ocean.jpeg') center / cover no-repeat;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 20000;
+}
+
+#start h1 {
+  margin: 0;
+  font-size: clamp(3rem, 8vw, 5rem);
+  color: black;
+  text-shadow: 2px 2px 5px rgba(255, 255, 255, 0.7);
+  font-family: Arial, sans-serif;
+  font-weight: 700;
+}
+
+#startO {
+  display: inline-block;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+#game {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  display: none;
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+#player {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 12px white);
+  transition: width 0.1s, height 0.1s;
+}
+
+.orb {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  background: #00f0ff;
+  box-shadow: 0 0 20px #00f0ff;
+  border-radius: 4px;
+}
+
+.enemy {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  background: #ff2a2a;
+  box-shadow: 0 0 15px red;
+  border-radius: 6px;
+}
+
+.power {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: gold;
+  box-shadow: 0 0 25px gold;
+  border-radius: 6px;
+}
+
+.kirk {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: #8000ff;
+  box-shadow: 0 0 25px #8000ff;
+  border-radius: 6px;
+}
+
+#ui {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  color: white;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 10px 14px;
+  border-radius: 8px;
+}
+
+#playAgain {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 16px 36px;
+  display: none;
+  background: black;
+  color: white;
+  border: 2px solid white;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+<div id="start">
+  <h1>Do your w<span id="startO" title="Start game">o</span>rk</h1>
+</div>
+
+<div id="game" tabindex="0">
+  <div id="ui">
+    Score: <span id="score">0</span><br>
+    Speed: <span id="spd">18.0</span>
+  </div>
+  <button id="playAgain">PLAY AGAIN</button>
+  <img src="hathaway.jpeg" id="player" alt="player">
+</div>
+
+<script>
+const INTRO_KEY = "doYourWorkSeen";
+const ENEMY_SAFE_RADIUS = 240;
+
+const startScreen = document.getElementById("start");
+const startO = document.getElementById("startO");
+const game = document.getElementById("game");
+const player = document.getElementById("player");
+const scoreEl = document.getElementById("score");
+const spdEl = document.getElementById("spd");
+const playBtn = document.getElementById("playAgain");
+
+let x = window.innerWidth / 2;
+let y = window.innerHeight / 2;
+let velX = 0;
+let velY = 0;
+let speed = 18;
+let acceleration = 1.2;
+let friction = 0.9;
+let enemySpeed = 0.6;
+let score = 0;
+let invincible = false;
+let gameOver = false;
+let cutsceneActive = false;
+let keys = {};
+let gameStarted = false;
+
+let enemyTimer;
+let powerTimer;
+let kirkTimer;
+let pacingTimer;
+
+document.addEventListener("keydown", e => {
+  keys[e.key] = true;
+  if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
+    e.preventDefault();
+  }
+});
+
+document.addEventListener("keyup", e => {
+  keys[e.key] = false;
+});
+
+playBtn.addEventListener("click", restartGame);
+
+function clearTimers() {
+  clearInterval(enemyTimer);
+  clearInterval(powerTimer);
+  clearInterval(kirkTimer);
+  clearInterval(pacingTimer);
+}
+
+function startTimers() {
+  enemyTimer = setInterval(() => spawn("enemy"), 2200);
+  powerTimer = setInterval(() => spawn("power"), 16000);
+  kirkTimer = setInterval(() => spawn("kirk"), 26000);
+
+  // Slow long-term ramp so the game takes a while to get intense.
+  pacingTimer = setInterval(() => {
+    if (gameOver || cutsceneActive) return;
+    speed = Math.min(speed + 0.35, 70);
+    enemySpeed = Math.min(enemySpeed + 0.05, 4.5);
+    spdEl.textContent = speed.toFixed(1);
+  }, 5000);
+}
+
+function clearDynamicObjects() {
+  document.querySelectorAll(".orb,.enemy,.power,.kirk,.cutscene-overlay").forEach(el => el.remove());
+}
+
+function resetState() {
+  clearTimers();
+  clearDynamicObjects();
+
+  x = window.innerWidth / 2;
+  y = window.innerHeight / 2;
+  velX = 0;
+  velY = 0;
+  speed = 18;
+  acceleration = 1.2;
+  friction = 0.9;
+  enemySpeed = 0.6;
+  score = 0;
+  invincible = false;
+  gameOver = false;
+  cutsceneActive = false;
+  keys = {};
+
+  scoreEl.textContent = String(score);
+  spdEl.textContent = speed.toFixed(1);
+  player.style.opacity = "1";
+  player.style.left = x + "px";
+  player.style.top = y + "px";
+  playBtn.style.display = "none";
+}
+
+function restartGame() {
+  resetState();
+  spawn("orb");
+  startTimers();
+  game.focus();
+  requestAnimationFrame(loop);
+}
+
+function spawn(cls) {
+  const d = document.createElement("div");
+  d.className = cls;
+
+  let sx = 0;
+  let sy = 0;
+  const maxAttempts = 60;
+
+  for (let i = 0; i < maxAttempts; i++) {
+    sx = Math.random() * (window.innerWidth - 50);
+    sy = Math.random() * (window.innerHeight - 50);
+
+    if (cls !== "enemy") break;
+
+    const dx = (sx + 16) - x;
+    const dy = (sy + 16) - y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist >= ENEMY_SAFE_RADIUS) break;
+  }
+
+  d.style.left = sx + "px";
+  d.style.top = sy + "px";
+  game.appendChild(d);
+  return d;
+}
+
+function collide(a, b) {
+  const A = a.getBoundingClientRect();
+  const B = b.getBoundingClientRect();
+  return !(A.right < B.left || A.left > B.right || A.bottom < B.top || A.top > B.bottom);
+}
+
+function animeDeathBurst(xPos, yPos, parent) {
+  const host = parent || game;
+  const ring = document.createElement("div");
+  ring.style.position = "absolute";
+  ring.style.left = xPos + "px";
+  ring.style.top = yPos + "px";
+  ring.style.width = "20px";
+  ring.style.height = "20px";
+  ring.style.border = "2px solid rgba(255,145,191,0.95)";
+  ring.style.borderRadius = "50%";
+  ring.style.transform = "translate(-50%,-50%) scale(0.3)";
+  ring.style.opacity = "1";
+  ring.style.pointerEvents = "none";
+  ring.style.zIndex = 10020;
+  host.appendChild(ring);
+
+  let ringScale = 0.3;
+  let ringOpacity = 1;
+  function animateRing() {
+    ringScale += 0.18;
+    ringOpacity -= 0.045;
+    ring.style.transform = `translate(-50%,-50%) scale(${ringScale})`;
+    ring.style.opacity = ringOpacity;
+    if (ringOpacity > 0) requestAnimationFrame(animateRing);
+    else ring.remove();
+  }
+  animateRing();
+
+  for (let i = 0; i < 24; i++) {
+    const particle = document.createElement("div");
+    particle.style.position = "absolute";
+    particle.style.left = xPos + "px";
+    particle.style.top = yPos + "px";
+    particle.style.width = (2 + Math.random() * 5) + "px";
+    particle.style.height = (2 + Math.random() * 5) + "px";
+    particle.style.borderRadius = "50%";
+    particle.style.background = i % 4 === 0 ? "#fff" : "#ff7abf";
+    particle.style.boxShadow = "0 0 12px rgba(255,122,191,0.95)";
+    particle.style.pointerEvents = "none";
+    particle.style.zIndex = 10021;
+    host.appendChild(particle);
+    const ang = Math.random() * Math.PI * 2;
+    const ps = 4 + Math.random() * 6;
+    let life = 1;
+    let px = 0;
+    let py = 0;
+
+    function animateParticle() {
+      px += Math.cos(ang) * ps;
+      py += Math.sin(ang) * ps;
+      life -= 0.04;
+      particle.style.transform = `translate(${px}px,${py}px)`;
+      particle.style.opacity = life;
+      if (life > 0) requestAnimationFrame(animateParticle);
+      else particle.remove();
+    }
+    animateParticle();
+  }
+}
+
+function devitoCutscene() {
+  if (cutsceneActive || gameOver) return;
+  cutsceneActive = true;
+  invincible = true;
+
+  const overlay = document.createElement("div");
+  overlay.className = "cutscene-overlay";
+  overlay.style.position = "absolute";
+  overlay.style.top = 0;
+  overlay.style.left = 0;
+  overlay.style.width = "100vw";
+  overlay.style.height = "100vh";
+  overlay.style.background = "radial-gradient(circle at center, rgba(62,18,31,0.72) 0%, rgba(0,0,0,0.94) 65%)";
+  overlay.style.backdropFilter = "blur(3px) saturate(1.4)";
+  overlay.style.zIndex = 10000;
+  overlay.style.overflow = "hidden";
+  overlay.style.opacity = "0";
+  overlay.style.transition = "opacity 500ms ease";
+  game.appendChild(overlay);
+
+  const bloom = document.createElement("div");
+  bloom.style.position = "absolute";
+  bloom.style.inset = "0";
+  bloom.style.background = "radial-gradient(circle at 50% 45%, rgba(255,212,235,0.32), rgba(0,0,0,0) 55%)";
+  bloom.style.mixBlendMode = "screen";
+  bloom.style.pointerEvents = "none";
+  overlay.appendChild(bloom);
+
+  const title = document.createElement("div");
+  title.textContent = "DANNY DEVITO // BLOSSOM RONIN";
+  title.style.position = "absolute";
+  title.style.top = "15%";
+  title.style.left = "50%";
+  title.style.transform = "translate(-50%,-40px)";
+  title.style.color = "#ffd3ec";
+  title.style.fontFamily = "monospace";
+  title.style.letterSpacing = "5px";
+  title.style.fontSize = "20px";
+  title.style.textShadow = "0 0 24px rgba(255,161,215,0.9)";
+  title.style.opacity = "0";
+  title.style.transition = "all 700ms ease";
+  title.style.zIndex = 10004;
+  overlay.appendChild(title);
+
+  const devito = document.createElement("img");
+  devito.src = "devito.jpeg";
+  devito.style.width = "340px";
+  devito.style.position = "absolute";
+  devito.style.left = "50%";
+  devito.style.top = "52%";
+  devito.style.transform = "translate(-50%,-50%) scale(0.45) rotate(0deg)";
+  devito.style.filter = "blur(6px) grayscale(0.4) brightness(0.85) drop-shadow(0 0 0 rgba(255,211,236,0.9))";
+  devito.style.imageRendering = "pixelated";
+  devito.style.transition = "all 1100ms cubic-bezier(.2,.75,.2,1)";
+  devito.style.zIndex = 10003;
+  overlay.appendChild(devito);
+
+  const aura = document.createElement("div");
+  aura.style.position = "absolute";
+  aura.style.left = "50%";
+  aura.style.top = "52%";
+  aura.style.width = "380px";
+  aura.style.height = "380px";
+  aura.style.borderRadius = "50%";
+  aura.style.transform = "translate(-50%,-50%) scale(0.45)";
+  aura.style.background = "radial-gradient(circle, rgba(255,189,227,0.4) 0%, rgba(255,189,227,0) 70%)";
+  aura.style.filter = "blur(12px)";
+  aura.style.opacity = "0.25";
+  aura.style.transition = "all 900ms ease";
+  aura.style.zIndex = 10002;
+  overlay.appendChild(aura);
+
+  const whiteFlash = document.createElement("div");
+  whiteFlash.style.position = "absolute";
+  whiteFlash.style.inset = "0";
+  whiteFlash.style.background = "#ffe9f5";
+  whiteFlash.style.opacity = "0";
+  whiteFlash.style.transition = "opacity 160ms ease";
+  whiteFlash.style.zIndex = 10050;
+  overlay.appendChild(whiteFlash);
+
+  const petals = [];
+  for (let i = 0; i < 120; i++) {
+    const p = document.createElement("div");
+    const size = 5 + Math.random() * 14;
+    p.style.position = "absolute";
+    p.style.width = size + "px";
+    p.style.height = (size * 0.6) + "px";
+    p.style.borderRadius = "80% 20% 70% 30%";
+    p.style.background = i % 3 === 0 ? "#ffc7e4" : "#ff91c6";
+    p.style.boxShadow = "0 0 12px rgba(255,165,215,0.6)";
+    p.style.opacity = (0.25 + Math.random() * 0.75).toFixed(2);
+    overlay.appendChild(p);
+    petals.push({
+      el: p,
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight - window.innerHeight,
+      vx: (Math.random() - 0.5) * 1.8,
+      vy: 1.2 + Math.random() * 3.4,
+      rot: Math.random() * 360,
+      rotV: (Math.random() - 0.5) * 6
+    });
+  }
+
+  let shake = 0;
+  function createSlash(angle, delay) {
+    setTimeout(() => {
+      const slash = document.createElement("div");
+      slash.style.position = "absolute";
+      slash.style.left = "50%";
+      slash.style.top = "52%";
+      slash.style.width = "12px";
+      slash.style.height = "12px";
+      slash.style.background = "linear-gradient(90deg, rgba(255,255,255,0.95), rgba(255,152,214,0.7), rgba(255,255,255,0.95))";
+      slash.style.boxShadow = "0 0 45px rgba(255,170,228,1)";
+      slash.style.transformOrigin = "center";
+      slash.style.transform = `translate(-50%,-50%) rotate(${angle}deg) scale(0.2,0.35)`;
+      slash.style.borderRadius = "999px";
+      slash.style.transition = "transform 220ms cubic-bezier(.2,.7,.2,1), opacity 240ms ease";
+      slash.style.zIndex = 10040;
+      overlay.appendChild(slash);
+      requestAnimationFrame(() => {
+        slash.style.transform = `translate(-50%,-50%) rotate(${angle}deg) scale(26,0.36)`;
+        slash.style.opacity = "0";
+      });
+      setTimeout(() => slash.remove(), 260);
+      shake = 10;
+      whiteFlash.style.opacity = "0.85";
+      setTimeout(() => {
+        whiteFlash.style.opacity = "0";
+      }, 70);
+    }, delay);
+  }
+
+  setTimeout(() => {
+    overlay.style.opacity = "1";
+  }, 20);
+  setTimeout(() => {
+    title.style.opacity = "1";
+    title.style.transform = "translate(-50%,0)";
+  }, 350);
+  setTimeout(() => {
+    devito.style.transform = "translate(-50%,-50%) scale(1.1) rotate(-8deg)";
+    devito.style.filter = "blur(0px) grayscale(0) brightness(1.2) contrast(1.25) saturate(1.4) drop-shadow(0 0 35px rgba(255,219,240,0.95))";
+    aura.style.transform = "translate(-50%,-50%) scale(1.45)";
+    aura.style.opacity = "0.75";
+  }, 900);
+
+  createSlash(-24, 1750);
+  createSlash(8, 1900);
+  createSlash(34, 2050);
+  createSlash(-14, 2200);
+  createSlash(18, 2360);
+
+  setTimeout(() => {
+    document.querySelectorAll(".enemy").forEach(e => {
+      const rect = e.getBoundingClientRect();
+      animeDeathBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, overlay);
+      e.remove();
+    });
+  }, 2450);
+
+  let last = performance.now();
+  function animatePetals(now) {
+    if (!cutsceneActive) return;
+    const dt = Math.min(32, now - last) / 16;
+    last = now;
+    petals.forEach(p => {
+      p.x += p.vx * dt + Math.sin((now + p.rot * 8) / 380) * 0.9;
+      p.y += p.vy * dt;
+      p.rot += p.rotV * dt;
+      if (p.y > window.innerHeight + 30) {
+        p.y = -20 - Math.random() * window.innerHeight * 0.4;
+        p.x = Math.random() * window.innerWidth;
+      }
+      if (p.x < -30) p.x = window.innerWidth + 20;
+      if (p.x > window.innerWidth + 30) p.x = -20;
+      p.el.style.transform = `translate(${p.x}px,${p.y}px) rotate(${p.rot}deg)`;
+    });
+    overlay.style.transform = shake > 0 ? `translate(${(Math.random() - 0.5) * shake}px, ${(Math.random() - 0.5) * shake}px)` : "translate(0,0)";
+    shake *= 0.88;
+    requestAnimationFrame(animatePetals);
+  }
+  requestAnimationFrame(animatePetals);
+
+  setTimeout(() => {
+    title.style.opacity = "0";
+    devito.style.opacity = "0";
+    aura.style.opacity = "0";
+    overlay.style.opacity = "0";
+  }, 3300);
+
+  setTimeout(() => {
+    cutsceneActive = false;
+    invincible = false;
+    overlay.remove();
+  }, 3900);
+}
+
+function kirk() {
+  if (cutsceneActive || gameOver) return;
+  cutsceneActive = true;
+  invincible = true;
+  score += 50;
+  speed += 20;
+  scoreEl.textContent = score;
+  spdEl.textContent = speed.toFixed(1);
+
+  const overlay = document.createElement("div");
+  overlay.className = "cutscene-overlay";
+  overlay.style.position = "absolute";
+  overlay.style.top = 0;
+  overlay.style.left = 0;
+  overlay.style.width = "100vw";
+  overlay.style.height = "100vh";
+  overlay.style.zIndex = 10000;
+  overlay.style.overflow = "hidden";
+  overlay.style.opacity = "0";
+  overlay.style.transition = "opacity 550ms ease";
+  overlay.style.background = "linear-gradient(180deg, rgba(6,11,31,0.9) 0%, rgba(8,16,44,0.92) 55%, rgba(15,23,28,0.92) 100%)";
+  game.appendChild(overlay);
+
+  const moon = document.createElement("div");
+  moon.style.position = "absolute";
+  moon.style.top = "14%";
+  moon.style.left = "73%";
+  moon.style.width = "230px";
+  moon.style.height = "230px";
+  moon.style.borderRadius = "50%";
+  moon.style.background = "radial-gradient(circle at 30% 30%, rgba(255,255,255,1), rgba(209,228,255,0.92) 45%, rgba(153,186,244,0.72) 70%, rgba(126,158,214,0.4) 100%)";
+  moon.style.boxShadow = "0 0 85px rgba(192,224,255,0.9), 0 0 170px rgba(123,169,242,0.65)";
+  moon.style.filter = "saturate(1.1)";
+  moon.style.zIndex = 10002;
+  overlay.appendChild(moon);
+
+  const moonHaze = document.createElement("div");
+  moonHaze.style.position = "absolute";
+  moonHaze.style.inset = "0";
+  moonHaze.style.background = "radial-gradient(circle at 73% 24%, rgba(185,217,255,0.22), rgba(0,0,0,0) 45%)";
+  moonHaze.style.mixBlendMode = "screen";
+  moonHaze.style.zIndex = 10001;
+  overlay.appendChild(moonHaze);
+
+  for (let i = 0; i < 5; i++) {
+    const cloud = document.createElement("div");
+    cloud.style.position = "absolute";
+    cloud.style.width = (240 + Math.random() * 180) + "px";
+    cloud.style.height = (56 + Math.random() * 40) + "px";
+    cloud.style.top = (70 + Math.random() * 220) + "px";
+    cloud.style.left = (-260 + Math.random() * window.innerWidth) + "px";
+    cloud.style.borderRadius = "999px";
+    cloud.style.background = "linear-gradient(90deg, rgba(88,113,159,0.28), rgba(138,166,214,0.32), rgba(88,113,159,0.24))";
+    cloud.style.filter = "blur(9px)";
+    cloud.style.opacity = (0.3 + Math.random() * 0.4).toFixed(2);
+    cloud.style.zIndex = 10003;
+    overlay.appendChild(cloud);
+    const drift = 0.15 + Math.random() * 0.35;
+
+    function moveCloud() {
+      const xPos = parseFloat(cloud.style.left) + drift;
+      cloud.style.left = (xPos > window.innerWidth + 40 ? -300 : xPos) + "px";
+      if (cutsceneActive) requestAnimationFrame(moveCloud);
+    }
+    requestAnimationFrame(moveCloud);
+  }
+
+  const fog = document.createElement("div");
+  fog.style.position = "absolute";
+  fog.style.left = "0";
+  fog.style.bottom = "0";
+  fog.style.width = "100%";
+  fog.style.height = "42%";
+  fog.style.background = "linear-gradient(180deg, rgba(110,170,120,0) 0%, rgba(78,160,102,0.2) 35%, rgba(65,141,86,0.4) 65%, rgba(45,94,63,0.7) 100%)";
+  fog.style.filter = "blur(3px)";
+  fog.style.zIndex = 10006;
+  overlay.appendChild(fog);
+
+  const kirkImg = document.createElement("img");
+  kirkImg.src = "kirk.jpeg";
+  kirkImg.style.position = "absolute";
+  kirkImg.style.left = "50%";
+  kirkImg.style.top = "56%";
+  kirkImg.style.width = "310px";
+  kirkImg.style.transform = "translate(-50%,-50%) scale(0.72) rotate(0deg)";
+  kirkImg.style.filter = "brightness(0.82) contrast(1.15) hue-rotate(96deg) drop-shadow(0 0 0 rgba(170,255,191,0.8))";
+  kirkImg.style.transition = "all 950ms cubic-bezier(.2,.8,.2,1)";
+  kirkImg.style.zIndex = 10009;
+  overlay.appendChild(kirkImg);
+
+  const title = document.createElement("div");
+  title.textContent = "KIRK, MOONLIT NECROMANCER";
+  title.style.position = "absolute";
+  title.style.top = "12%";
+  title.style.left = "50%";
+  title.style.transform = "translate(-50%,-20px)";
+  title.style.fontFamily = "monospace";
+  title.style.fontSize = "22px";
+  title.style.letterSpacing = "4px";
+  title.style.color = "#b9ffd4";
+  title.style.textShadow = "0 0 24px rgba(132,255,180,0.95)";
+  title.style.opacity = "0";
+  title.style.transition = "all 700ms ease";
+  title.style.zIndex = 10010;
+  overlay.appendChild(title);
+
+  const sigil = document.createElement("div");
+  sigil.style.position = "absolute";
+  sigil.style.left = "50%";
+  sigil.style.top = "66%";
+  sigil.style.width = "360px";
+  sigil.style.height = "360px";
+  sigil.style.borderRadius = "50%";
+  sigil.style.border = "2px solid rgba(133,255,184,0.5)";
+  sigil.style.boxShadow = "0 0 45px rgba(113,250,166,0.5), inset 0 0 30px rgba(113,250,166,0.35)";
+  sigil.style.transform = "translate(-50%,-50%) scale(0.65)";
+  sigil.style.opacity = "0.15";
+  sigil.style.zIndex = 10008;
+  overlay.appendChild(sigil);
+
+  const sigilInner = document.createElement("div");
+  sigilInner.style.position = "absolute";
+  sigilInner.style.left = "50%";
+  sigilInner.style.top = "66%";
+  sigilInner.style.width = "230px";
+  sigilInner.style.height = "230px";
+  sigilInner.style.borderRadius = "50%";
+  sigilInner.style.border = "2px dashed rgba(184,255,218,0.52)";
+  sigilInner.style.transform = "translate(-50%,-50%)";
+  sigilInner.style.opacity = "0.35";
+  sigilInner.style.zIndex = 10008;
+  overlay.appendChild(sigilInner);
+
+  const undead = [];
+  for (let i = 0; i < 50; i++) {
+    const e = document.createElement("div");
+    e.className = "enemy";
+    const ex = Math.random() * (window.innerWidth - 60) + 10;
+    const ey = window.innerHeight - (40 + Math.random() * 90);
+    e.style.left = ex + "px";
+    e.style.top = ey + "px";
+    e.style.opacity = "0";
+    e.style.transform = "translateY(54px) scale(0.24)";
+    e.style.transition = "transform 700ms cubic-bezier(.16,.84,.22,1), opacity 420ms ease, box-shadow 350ms ease";
+    e.style.background = "linear-gradient(160deg, #5eff95, #1e6843)";
+    e.style.boxShadow = "0 0 24px rgba(126,255,171,0.95)";
+    e.style.borderRadius = "7px";
+    e.style.zIndex = 9980;
+    game.appendChild(e);
+    undead.push({ el: e, x: ex, y: ey });
+
+    setTimeout(() => {
+      e.style.opacity = "1";
+      e.style.transform = "translateY(0px) scale(1)";
+      e.style.boxShadow = "0 0 16px rgba(108,255,160,0.8)";
+      for (let j = 0; j < 9; j++) {
+        const spark = document.createElement("div");
+        spark.style.position = "absolute";
+        spark.style.left = ex + 16 + "px";
+        spark.style.top = ey + 16 + "px";
+        spark.style.width = (2 + Math.random() * 4) + "px";
+        spark.style.height = (2 + Math.random() * 4) + "px";
+        spark.style.borderRadius = "50%";
+        spark.style.background = "#bfffd7";
+        spark.style.boxShadow = "0 0 10px rgba(187,255,214,0.95)";
+        spark.style.zIndex = 10011;
+        overlay.appendChild(spark);
+        const ang = Math.random() * Math.PI * 2;
+        const vel = 1.8 + Math.random() * 3.2;
+        let life = 1;
+        let px = 0;
+        let py = 0;
+
+        function fly() {
+          px += Math.cos(ang) * vel;
+          py += Math.sin(ang) * vel - 1.2;
+          life -= 0.06;
+          spark.style.transform = `translate(${px}px,${py}px)`;
+          spark.style.opacity = life;
+          if (life > 0) requestAnimationFrame(fly);
+          else spark.remove();
+        }
+        fly();
+      }
+    }, 750 + Math.random() * 1300);
+  }
+
+  let glowPulse = 0;
+  function animateNecro() {
+    if (!cutsceneActive) return;
+    glowPulse += 0.03;
+    sigil.style.transform = `translate(-50%,-50%) scale(${0.95 + Math.sin(glowPulse) * 0.06}) rotate(${glowPulse * 20}deg)`;
+    sigil.style.opacity = (0.16 + Math.sin(glowPulse * 2) * 0.09).toFixed(3);
+    sigilInner.style.transform = `translate(-50%,-50%) rotate(${-glowPulse * 36}deg) scale(${1 + Math.cos(glowPulse * 1.4) * 0.05})`;
+    kirkImg.style.transform = `translate(-50%,-50%) scale(${1.03 + Math.sin(glowPulse * 1.6) * 0.025}) rotate(${Math.sin(glowPulse * 1.1) * 2}deg)`;
+    requestAnimationFrame(animateNecro);
+  }
+  requestAnimationFrame(animateNecro);
+
+  setTimeout(() => {
+    overlay.style.opacity = "1";
+  }, 20);
+  setTimeout(() => {
+    title.style.opacity = "1";
+    title.style.transform = "translate(-50%,0)";
+    kirkImg.style.transform = "translate(-50%,-50%) scale(1.06) rotate(-1.5deg)";
+    kirkImg.style.filter = "brightness(1.06) contrast(1.2) hue-rotate(104deg) drop-shadow(0 0 28px rgba(165,255,195,0.96))";
+    sigil.style.opacity = "0.3";
+  }, 420);
+
+  setTimeout(() => {
+    overlay.style.opacity = "0";
+  }, 4300);
+
+  setTimeout(() => {
+    overlay.remove();
+    undead.forEach(obj => {
+      obj.el.style.zIndex = "";
+      obj.el.style.background = "";
+      obj.el.style.borderRadius = "6px";
+      obj.el.style.transition = "";
+      obj.el.style.transform = "";
+      obj.el.style.opacity = "1";
+    });
+    cutsceneActive = false;
+  }, 4900);
+
+  setTimeout(() => {
+    invincible = false;
+  }, 5000);
+}
+
+function death() {
+  gameOver = true;
+  clearTimers();
+  player.style.opacity = "0";
+
+  for (let i = 0; i < 60; i++) {
+    const p = document.createElement("div");
+    p.style.position = "absolute";
+    p.style.width = "5px";
+    p.style.height = "5px";
+    p.style.background = "white";
+    p.style.left = x + "px";
+    p.style.top = y + "px";
+    p.style.opacity = "1";
+    game.appendChild(p);
+
+    const ang = Math.random() * 2 * Math.PI;
+    const v = 2 + Math.random() * 6;
+    let px = 0;
+    let py = 0;
+
+    function anim() {
+      px += Math.cos(ang) * v;
+      py += Math.sin(ang) * v;
+      p.style.transform = `translate(${px}px,${py}px)`;
+      p.style.opacity = String(parseFloat(p.style.opacity) - 0.03);
+      if (parseFloat(p.style.opacity) > 0) requestAnimationFrame(anim);
+      else p.remove();
+    }
+    anim();
+  }
+
+  setTimeout(() => {
+    playBtn.style.display = "block";
+  }, 500);
+}
+
+function loop() {
+  if (gameOver) return;
+  if (cutsceneActive) {
+    requestAnimationFrame(loop);
+    return;
+  }
+
+  if (keys["ArrowUp"] || keys["w"]) velY -= acceleration;
+  if (keys["ArrowDown"] || keys["s"]) velY += acceleration;
+  if (keys["ArrowLeft"] || keys["a"]) velX -= acceleration;
+  if (keys["ArrowRight"] || keys["d"]) velX += acceleration;
+
+  let mag = Math.sqrt(velX * velX + velY * velY);
+  if (mag > speed) {
+    velX = (velX / mag) * speed;
+    velY = (velY / mag) * speed;
+  }
+
+  velX *= friction;
+  velY *= friction;
+  x += velX;
+  y += velY;
+
+  if (x > window.innerWidth) x = 0;
+  if (x < 0) x = window.innerWidth;
+  if (y > window.innerHeight) y = 0;
+  if (y < 0) y = window.innerHeight;
+
+  player.style.left = x + "px";
+  player.style.top = y + "px";
+
+  document.querySelectorAll(".enemy").forEach(e => {
+    let ex = parseFloat(e.style.left);
+    let ey = parseFloat(e.style.top);
+    const dx = x - ex;
+    const dy = y - ey;
+    const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+    ex += (dx / dist) * enemySpeed;
+    ey += (dy / dist) * enemySpeed;
+    e.style.left = ex + "px";
+    e.style.top = ey + "px";
+    if (!invincible && collide(player, e)) death();
+  });
+
+  document.querySelectorAll(".orb").forEach(o => {
+    if (collide(player, o)) {
+      o.remove();
+      score++;
+      speed += 0.6;
+      enemySpeed += 0.03;
+      scoreEl.textContent = score;
+      spdEl.textContent = speed.toFixed(1);
+      spawn("orb");
+    }
+  });
+
+  document.querySelectorAll(".power").forEach(p => {
+    if (collide(player, p)) {
+      p.remove();
+      devitoCutscene();
+    }
+  });
+
+  document.querySelectorAll(".kirk").forEach(k => {
+    if (collide(player, k)) {
+      k.remove();
+      kirk();
+    }
+  });
+
+  requestAnimationFrame(loop);
+}
+
+function startGame() {
+  if (gameStarted) return;
+  gameStarted = true;
+  startScreen.style.display = "none";
+  game.style.display = "block";
+  resetState();
+  spawn("orb");
+  startTimers();
+  game.focus();
+  requestAnimationFrame(loop);
+}
+
+startO.addEventListener("click", () => {
+  localStorage.setItem(INTRO_KEY, "1");
+  startGame();
+});
+
+if (localStorage.getItem(INTRO_KEY) === "1") {
+  startGame();
+}
+</script>
+</body>
+</html>
