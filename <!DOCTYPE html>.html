@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>dont play this in class if you do youre not cool</title>
+
+<style>
+body {
+  margin: 0;
+  overflow: hidden;
+  background: radial-gradient(circle at center, #111 0%, #000 70%);
+  font-family: "Courier New", monospace;
+}
+
+/* GRID BACKGROUND */
+#gameArea {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* PLAYER */
+#player {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 12px white);
+  transition: width 0.1s, height 0.1s;
+}
+
+/* OBJECTS */
+.orb {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  background: #00f0ff;
+  box-shadow: 0 0 20px #00f0ff;
+  border-radius: 4px;
+}
+
+.enemy {
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  background: #ff2a2a;
+  box-shadow: 0 0 18px red;
+  border-radius: 6px;
+}
+
+.powerup {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: gold;
+  box-shadow: 0 0 30px gold;
+}
+
+.kirkPower {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  background: #7b00ff;
+  box-shadow: 0 0 30px #7b00ff;
+}
+
+/* UI */
+#ui {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  color: white;
+  background: rgba(0,0,0,0.6);
+  padding: 12px 16px;
+  border-radius: 8px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 0 15px #000;
+}
+
+#playAgain {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: 18px 38px;
+  font-size: 18px;
+  background: black;
+  color: white;
+  border: 2px solid white;
+  display: none;
+  cursor: pointer;
+}
+#playAgain:hover {
+  background: white;
+  color: black;
+}
+</style>
+</head>
+<body>
+
+<div id="gameArea">
+  <div id="ui">
+    Score: <span id="score">0</span><br>
+    Speed: <span id="speedDisplay">64</span>
+  </div>
+  <button id="playAgain" onclick="location.reload()">PLAY AGAIN</button>
+  <img src="hathaway.jpeg" id="player">
+</div>
+
+<script>
+const player = document.getElementById("player");
+const scoreDisplay = document.getElementById("score");
+const speedDisplay = document.getElementById("speedDisplay");
+const gameArea = document.getElementById("gameArea");
+const playAgain = document.getElementById("playAgain");
+
+let x = window.innerWidth / 2;
+let y = window.innerHeight / 2;
+
+let velX = 0;
+let velY = 0;
+let acceleration = 2.2;
+let friction = 0.9;
+
+let speed = 64;        // Base speed
+let enemySpeed = 2.5;
+let score = 0;
+
+let keys = {};
+let invincible = false;
+let gameOver = false;
+
+/* INPUT */
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
+
+/* SPAWN */
+function spawn(className){
+  const obj = document.createElement("div");
+  obj.classList.add(className);
+  obj.style.left = Math.random()*(window.innerWidth-50)+"px";
+  obj.style.top = Math.random()*(window.innerHeight-50)+"px";
+  gameArea.appendChild(obj);
+}
+
+function collide(a,b){
+  const A=a.getBoundingClientRect();
+  const B=b.getBoundingClientRect();
+  return !(A.right<B.left||A.left>B.right||A.bottom<B.top||A.top>B.bottom);
+}
+
+/* DEVITO */
+function activateDevito(){
+
+  // Remove all enemies
+  document.querySelectorAll(".enemy").forEach(e=>e.remove());
+
+  // Overlay container
+  const overlay = document.createElement("div");
+  overlay.style.position = "absolute";
+  overlay.style.top = 0;
+  overlay.style.left = 0;
+  overlay.style.width = "100vw";
+  overlay.style.height = "100vh";
+  overlay.style.background = "rgba(255,255,255,0.2)";
+  overlay.style.display = "flex";
+  overlay.style.alignItems = "center";
+  overlay.style.justifyContent = "center";
+  overlay.style.animation = "fadeIn 0.2s ease";
+  overlay.style.zIndex = 999;
+
+  const img = document.createElement("img");
+  img.src = "devito.jpeg";
+  img.style.width = "350px";
+  img.style.imageRendering = "pixelated";
+  img.style.filter = "drop-shadow(0 0 40px gold)";
+  img.style.transform = "scale(0.8)";
+  img.style.transition = "transform 0.3s ease";
+
+  overlay.appendChild(img);
+  gameArea.appendChild(overlay);
+
+  // Dramatic pop-in scale
+  setTimeout(()=>{
+    img.style.transform = "scale(1)";
+  },10);
+
+  // Remove overlay after 1 second
+  setTimeout(()=>{
+    overlay.remove();
+  },1000);
+}
+/* KIRK */
+function activateKirk(){
+  invincible=true;
+  score+=50;
+  speed+=50;
+  scoreDisplay.textContent=score;
+  speedDisplay.textContent=speed;
+
+  const img=document.createElement("img");
+  img.src="kirk.jpeg";
+  img.style.position="absolute";
+  img.style.width="100vw";
+  img.style.height="100vh";
+  img.style.top=0;
+  img.style.left=0;
+  gameArea.appendChild(img);
+
+  for(let i=0;i<50;i++)spawn("enemy");
+
+  setTimeout(()=>img.remove(),1200);
+  setTimeout(()=>invincible=false,5000);
+}
+
+/* DEATH */
+function death(){
+  gameOver=true;
+
+  for(let i=0;i<60;i++){
+    const p=document.createElement("div");
+    p.style.position="absolute";
+    p.style.width="5px";
+    p.style.height="5px";
+    p.style.background="white";
+    p.style.left=x+"px";
+    p.style.top=y+"px";
+    gameArea.appendChild(p);
+
+    const angle=Math.random()*Math.PI*2;
+    const v=Math.random()*6+2;
+    let px=0,py=0;
+
+    function animate(){
+      px+=Math.cos(angle)*v;
+      py+=Math.sin(angle)*v;
+      p.style.transform=`translate(${px}px,${py}px)`;
+      p.style.opacity-=0.03;
+      if(p.style.opacity<=0)p.remove();
+      else requestAnimationFrame(animate);
+    }
+    p.style.opacity=1;
+    animate();
+  }
+
+  player.style.opacity="0";
+  setTimeout(()=>playAgain.style.display="block",800);
+}
+
+/* GAME LOOP */
+function gameLoop(){
+  if(gameOver)return;
+
+  // ACCELERATION
+  if(keys["ArrowUp"]) velY -= acceleration;
+  if(keys["ArrowDown"]) velY += acceleration;
+  if(keys["ArrowLeft"]) velX -= acceleration;
+  if(keys["ArrowRight"]) velX += acceleration;
+
+  // LIMIT SPEED
+  let mag = Math.sqrt(velX*velX+velY*velY);
+  if(mag>speed){
+    velX = (velX/mag)*speed;
+    velY = (velY/mag)*speed;
+  }
+
+  // APPLY FRICTION
+  velX*=friction;
+  velY*=friction;
+
+  x+=velX;
+  y+=velY;
+
+  // SCREEN WRAP
+  if(x>window.innerWidth) x=0;
+  if(x<0) x=window.innerWidth;
+  if(y>window.innerHeight) y=0;
+  if(y<0) y=window.innerHeight;
+
+  player.style.left=x+"px";
+  player.style.top=y+"px";
+
+  /* ENEMIES */
+  document.querySelectorAll(".enemy").forEach(enemy=>{
+    let ex=parseFloat(enemy.style.left);
+    let ey=parseFloat(enemy.style.top);
+
+    const dx=x-ex;
+    const dy=y-ey;
+    const dist=Math.sqrt(dx*dx+dy*dy);
+
+    ex+=(dx/dist)*enemySpeed;
+    ey+=(dy/dist)*enemySpeed;
+
+    enemy.style.left=ex+"px";
+    enemy.style.top=ey+"px";
+
+    if(!invincible && collide(player,enemy)) death();
+  });
+
+  /* ORBS */
+  document.querySelectorAll(".orb").forEach(orb=>{
+    if(collide(player,orb)){
+      orb.remove();
+      score++;
+      speed+=5;
+      enemySpeed+=0.2;
+      scoreDisplay.textContent=score;
+      speedDisplay.textContent=speed;
+      spawn("orb");
+    }
+  });
+
+  document.querySelectorAll(".powerup").forEach(p=>{
+    if(collide(player,p)){p.remove();activateDevito();}
+  });
+
+  document.querySelectorAll(".kirkPower").forEach(k=>{
+    if(collide(player,k)){k.remove();activateKirk();}
+  });
+
+  requestAnimationFrame(gameLoop);
+}
+
+/* INITIAL SPAWNS */
+spawn("orb");
+setInterval(()=>spawn("enemy"),1400);
+setInterval(()=>spawn("powerup"),12000);
+setInterval(()=>spawn("kirkPower"),20000);
+
+gameLoop();
+</script>
+</body>
+</html>
