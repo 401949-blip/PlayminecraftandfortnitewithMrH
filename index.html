@@ -139,6 +139,22 @@ body {
   text-rendering: geometricPrecision;
 }
 
+#uiTime {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  color: white;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-family: "Segoe UI", "Trebuchet MS", Tahoma, sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  line-height: 1.35;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+}
+
 #shieldRing {
   position: absolute;
   width: 94px;
@@ -158,6 +174,27 @@ body {
   inset: 11px;
   border-radius: 50%;
   background: rgba(0, 0, 0, 0.64);
+}
+
+#kirkShieldRing {
+  position: absolute;
+  width: 108px;
+  height: 108px;
+  border-radius: 50%;
+  pointer-events: none;
+  display: none;
+  z-index: 12011;
+  background: conic-gradient(from 0deg, rgba(80,185,255,0.0), rgba(45,140,255,0.95), rgba(175,232,255,0.62), rgba(45,140,255,0.95), rgba(80,185,255,0.0));
+  filter: drop-shadow(0 0 15px rgba(60,160,255,0.95)) drop-shadow(0 0 30px rgba(50,125,255,0.7));
+  animation: shieldSpin 0.95s linear infinite, shieldPulse 1.25s ease-in-out infinite;
+}
+
+#kirkShieldRing::after {
+  content: "";
+  position: absolute;
+  inset: 11px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.62);
 }
 
 #bossUI {
@@ -252,10 +289,9 @@ body {
 
 <div id="game" tabindex="0">
   <div id="ui">
-    Score: <span id="score">0</span><br>
-    Speed: <span id="spd">18.0</span><br>
-    Time: <span id="timeSurvived">00:00</span>
+    Score: <span id="score">0</span>
   </div>
+  <div id="uiTime">Time: <span id="timeSurvived">00:00</span></div>
   <div id="bossUI">
     <div id="bossTop">
       <span id="bossName">EVIL HATHAWAY</span>
@@ -265,7 +301,9 @@ body {
   </div>
   <div id="bossAmbience"></div>
   <button id="playAgain">PLAY AGAIN</button>
+  <span id="spd" style="display:none">18.0</span>
   <div id="shieldRing"></div>
+  <div id="kirkShieldRing"></div>
   <img src="hathaway.jpeg" id="player" alt="player">
 </div>
 
@@ -280,6 +318,7 @@ const scoreEl = document.getElementById("score");
 const spdEl = document.getElementById("spd");
 const timeEl = document.getElementById("timeSurvived");
 const shieldRing = document.getElementById("shieldRing");
+const kirkShieldRing = document.getElementById("kirkShieldRing");
 const playBtn = document.getElementById("playAgain");
 const bossUI = document.getElementById("bossUI");
 const bossFill = document.getElementById("bossFill");
@@ -324,12 +363,13 @@ let bossMaxHp = 0;
 let hasShield = false;
 let shieldImmuneUntil = 0;
 let runStartedAt = 0;
+let kirkInvincibleUntil = 0;
 const FX_SETTINGS = {
-  deathBurstParticles: 12,
-  devitoPetals: 76,
-  boNixDust: 34,
-  kirkUndead: 56,
-  wipeBatchSize: 10,
+  deathBurstParticles: 8,
+  devitoPetals: 52,
+  boNixDust: 22,
+  kirkUndead: 40,
+  wipeBatchSize: 12,
   wipeBurstStride: 2
 };
 
@@ -413,6 +453,7 @@ function resetState() {
   bossMaxHp = 0;
   hasShield = false;
   shieldImmuneUntil = 0;
+  kirkInvincibleUntil = 0;
   runStartedAt = Date.now();
 
   scoreEl.textContent = String(score);
@@ -422,6 +463,7 @@ function resetState() {
   player.style.left = x + "px";
   player.style.top = y + "px";
   shieldRing.style.display = "none";
+  kirkShieldRing.style.display = "none";
   timeEl.textContent = formatTime(Date.now() - runStartedAt);
   playBtn.style.display = "none";
   bossUI.style.display = "none";
@@ -448,6 +490,14 @@ function updateShieldRingPosition() {
   if (!hasShield) return;
   shieldRing.style.left = (x - 17) + "px";
   shieldRing.style.top = (y - 17) + "px";
+}
+
+function updateKirkShieldRing() {
+  const active = Date.now() < kirkInvincibleUntil;
+  kirkShieldRing.style.display = active ? "block" : "none";
+  if (!active) return;
+  kirkShieldRing.style.left = (x - 24) + "px";
+  kirkShieldRing.style.top = (y - 24) + "px";
 }
 
 function formatTime(ms) {
@@ -1203,7 +1253,7 @@ function devitoCutscene() {
   overlay.style.width = "100vw";
   overlay.style.height = "100vh";
   overlay.style.background = "radial-gradient(circle at center, rgba(62,18,31,0.72) 0%, rgba(0,0,0,0.94) 65%)";
-  overlay.style.backdropFilter = "blur(3px) saturate(1.4)";
+  overlay.style.backdropFilter = "none";
   overlay.style.zIndex = 10000;
   overlay.style.overflow = "hidden";
   overlay.style.opacity = "0";
@@ -1387,6 +1437,7 @@ function kirk() {
   if (cutsceneActive || gameOver) return;
   cutsceneActive = true;
   invincible = true;
+  kirkInvincibleUntil = Date.now() + 10000;
   score += 50;
   speed += 20;
   scoreEl.textContent = score;
@@ -1543,7 +1594,7 @@ function kirk() {
       e.style.opacity = "1";
       e.style.transform = "translateY(0px) scale(1)";
       e.style.boxShadow = "0 0 16px rgba(108,255,160,0.8)";
-      for (let j = 0; j < 9; j++) {
+      for (let j = 0; j < 4; j++) {
         const spark = document.createElement("div");
         spark.style.position = "absolute";
         spark.style.left = ex + 16 + "px";
@@ -1664,6 +1715,7 @@ function loop() {
   if (gameOver) return;
   timeEl.textContent = formatTime(Date.now() - runStartedAt);
   updateShieldRingPosition();
+  updateKirkShieldRing();
   if (cutsceneActive) {
     requestAnimationFrame(loop);
     return;
