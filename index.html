@@ -678,9 +678,18 @@ function updateShieldRingPosition() {
 }
 
 function updateKirkShieldRing() {
-  const active = Date.now() < kirkInvincibleUntil;
+  const now = Date.now();
+  const remaining = kirkInvincibleUntil - now;
+  const active = remaining > 0;
   kirkShieldRing.style.display = active ? "block" : "none";
   if (!active) return;
+  if (remaining <= 3000) {
+    kirkShieldRing.style.background = "conic-gradient(from 0deg, rgba(255,95,95,0.0), rgba(255,40,40,0.95), rgba(255,185,185,0.62), rgba(255,40,40,0.95), rgba(255,95,95,0.0))";
+    kirkShieldRing.style.filter = "drop-shadow(0 0 15px rgba(255,65,65,0.95)) drop-shadow(0 0 30px rgba(210,25,25,0.7))";
+  } else {
+    kirkShieldRing.style.background = "conic-gradient(from 0deg, rgba(80,185,255,0.0), rgba(45,140,255,0.95), rgba(175,232,255,0.62), rgba(45,140,255,0.95), rgba(80,185,255,0.0))";
+    kirkShieldRing.style.filter = "drop-shadow(0 0 15px rgba(60,160,255,0.95)) drop-shadow(0 0 30px rgba(50,125,255,0.7))";
+  }
   kirkShieldRing.style.left = (x - 24) + "px";
   kirkShieldRing.style.top = (y - 24) + "px";
 }
@@ -1005,6 +1014,13 @@ function spawnIceTrail() {
   icePathPoints.push({ x: px, y: py, t: now });
 }
 
+function markIcePathBreak() {
+  const now = Date.now();
+  const last = icePathPoints[icePathPoints.length - 1];
+  if (!last || last.break) return;
+  icePathPoints.push({ break: true, t: now });
+}
+
 function drawIcePath(now) {
   icePathCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
   if (icePathPoints.length < 2) return;
@@ -1013,6 +1029,7 @@ function drawIcePath(now) {
   for (let i = 1; i < icePathPoints.length; i++) {
     const a = icePathPoints[i - 1];
     const b = icePathPoints[i];
+    if (!a || !b || a.break || b.break) continue;
     const age = now - b.t;
     const alpha = Math.max(0, 1 - age / 5000);
     if (alpha <= 0) continue;
@@ -1070,6 +1087,7 @@ function enemyTouchesIcePath(enemyEl) {
   for (let i = 1; i < icePathPoints.length; i++) {
     const a = icePathPoints[i - 1];
     const b = icePathPoints[i];
+    if (!a || !b || a.break || b.break) continue;
     if (pointToSegmentDistance(ex, ey, a.x, a.y, b.x, b.y) <= 18) return true;
   }
   return false;
@@ -2182,10 +2200,24 @@ function loop() {
   x += velX;
   y += velY;
 
-  if (x > window.innerWidth) x = 0;
-  if (x < 0) x = window.innerWidth;
-  if (y > window.innerHeight) y = 0;
-  if (y < 0) y = window.innerHeight;
+  let wrapped = false;
+  if (x > window.innerWidth) {
+    x = 0;
+    wrapped = true;
+  }
+  if (x < 0) {
+    x = window.innerWidth;
+    wrapped = true;
+  }
+  if (y > window.innerHeight) {
+    y = 0;
+    wrapped = true;
+  }
+  if (y < 0) {
+    y = window.innerHeight;
+    wrapped = true;
+  }
+  if (wrapped && drakePowerActive()) markIcePathBreak();
 
   player.style.left = x + "px";
   player.style.top = y + "px";
