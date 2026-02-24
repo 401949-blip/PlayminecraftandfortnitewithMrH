@@ -102,6 +102,22 @@ body {
   border-radius: 9px;
 }
 
+.drake {
+  position: absolute;
+  width: 38px;
+  height: 38px;
+  background: linear-gradient(145deg, #0f1f50, #233f9f 55%, #3b72d9);
+  box-shadow: 0 0 24px rgba(70, 130, 255, 0.88);
+  border-radius: 9px;
+}
+
+#icePathCanvas {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1600;
+}
+
 .boss {
   position: absolute;
   width: 120px;
@@ -272,13 +288,29 @@ body {
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  padding: 16px 36px;
-  display: none;
-  background: black;
-  color: white;
-  border: 2px solid white;
+  transform: translate(-50%, -44%);
+  padding: 16px 40px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(13,13,16,0.96), rgba(6,6,8,0.96));
+  color: #f6f8ff;
+  border: 1px solid rgba(185, 207, 255, 0.62);
+  border-radius: 12px;
+  letter-spacing: 1.2px;
+  font-family: "Segoe UI", "Trebuchet MS", Tahoma, sans-serif;
+  font-weight: 700;
+  box-shadow: 0 0 0 rgba(124,166,255,0), 0 12px 28px rgba(0,0,0,0.45);
+  transition: opacity 420ms ease, transform 420ms ease, box-shadow 420ms ease;
   cursor: pointer;
+}
+
+#playAgain.show {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 22px rgba(117,168,255,0.45), 0 14px 32px rgba(0,0,0,0.52);
 }
 </style>
 </head>
@@ -288,6 +320,7 @@ body {
 </div>
 
 <div id="game" tabindex="0">
+  <canvas id="icePathCanvas"></canvas>
   <div id="ui">
     Score: <span id="score">0</span>
   </div>
@@ -314,6 +347,8 @@ const startScreen = document.getElementById("start");
 const startO = document.getElementById("startO");
 const game = document.getElementById("game");
 const player = document.getElementById("player");
+const icePathCanvas = document.getElementById("icePathCanvas");
+const icePathCtx = icePathCanvas.getContext("2d");
 const scoreEl = document.getElementById("score");
 const spdEl = document.getElementById("spd");
 const timeEl = document.getElementById("timeSurvived");
@@ -348,6 +383,7 @@ let bossMinionTimer;
 let bossBulletTimer;
 let bossOrbTimer;
 let boNixTimer;
+let drakeTimer;
 
 let nextBossAt = 0;
 let bossActive = false;
@@ -364,16 +400,153 @@ let hasShield = false;
 let shieldImmuneUntil = 0;
 let runStartedAt = 0;
 let kirkInvincibleUntil = 0;
+let drakePowerUntil = 0;
+let nextIceTrailAt = 0;
+let icePathPoints = [];
+let audioCtx = null;
+let audioReady = false;
+let activeThemeStop = null;
 const FX_SETTINGS = {
   deathBurstParticles: 8,
   devitoPetals: 52,
-  boNixDust: 22,
+  boNixDust: 12,
   kirkUndead: 40,
   wipeBatchSize: 12,
   wipeBurstStride: 2
 };
 
+function ensureAudio() {
+  if (audioReady) return;
+  try {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return;
+    audioCtx = new Ctx();
+    audioReady = true;
+  } catch (_) {}
+}
+
+function playTone(freq, duration, type, vol, attackMs, releaseMs) {
+  if (!audioCtx) return;
+  const t0 = audioCtx.currentTime;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type || "sine";
+  osc.frequency.setValueAtTime(freq, t0);
+  gain.gain.setValueAtTime(0.0001, t0);
+  gain.gain.exponentialRampToValueAtTime(vol || 0.04, t0 + (attackMs || 14) / 1000);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t0 + (duration - (releaseMs || 40)) / 1000);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(t0);
+  osc.stop(t0 + duration / 1000);
+}
+
+function sfx(name) {
+  ensureAudio();
+  if (!audioCtx) return;
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  if (name === "orb") { playTone(820, 70, "triangle", 0.025, 6, 20); return; }
+  if (name === "pickup") { playTone(520, 90, "square", 0.03, 8, 24); playTone(790, 120, "triangle", 0.02, 10, 28); return; }
+  if (name === "boss") { playTone(130, 260, "sawtooth", 0.05, 16, 50); playTone(98, 300, "sine", 0.03, 20, 70); return; }
+  if (name === "slash") { playTone(1200, 90, "square", 0.02, 4, 20); return; }
+  if (name === "freeze") { playTone(420, 130, "triangle", 0.025, 10, 35); playTone(270, 150, "sine", 0.02, 10, 40); return; }
+  if (name === "shatter") { playTone(1600, 60, "triangle", 0.02, 5, 20); playTone(980, 90, "square", 0.018, 5, 24); return; }
+  if (name === "icecrack") { playTone(220, 90, "sawtooth", 0.022, 6, 20); playTone(1100, 55, "triangle", 0.014, 3, 18); return; }
+  if (name === "death") { playTone(190, 220, "sawtooth", 0.05, 8, 50); playTone(118, 280, "sine", 0.03, 10, 70); return; }
+  if (name === "ui") { playTone(640, 80, "triangle", 0.02, 6, 22); return; }
+}
+
+function stopTheme() {
+  if (!activeThemeStop) return;
+  activeThemeStop();
+  activeThemeStop = null;
+}
+
+function setTheme(starter) {
+  stopTheme();
+  activeThemeStop = starter ? starter() : null;
+}
+
+function createThemeInterval(stepMs, tick) {
+  ensureAudio();
+  if (!audioCtx) return () => {};
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  const id = setInterval(tick, stepMs);
+  tick();
+  return () => clearInterval(id);
+}
+
+function startDevitoTheme() {
+  let idx = 0;
+  const notes = [659, 784, 880, 988, 880, 784, 698, 880];
+  const stopMain = createThemeInterval(170, () => {
+    const n = notes[idx % notes.length];
+    idx++;
+    playTone(n, 130, "triangle", 0.016, 7, 26);
+    if (idx % 4 === 0) playTone(n / 2, 140, "sine", 0.01, 8, 34);
+  });
+  return () => stopMain();
+}
+
+function startKirkTheme() {
+  let phase = 0;
+  const stopBase = createThemeInterval(420, () => {
+    playTone(82 + Math.sin(phase * 0.6) * 6, 260, "sawtooth", 0.02, 8, 60);
+    phase++;
+  });
+  const stopSting = createThemeInterval(980, () => {
+    const f = Math.random() < 0.5 ? 311 : 277;
+    playTone(f, 140, "triangle", 0.013, 7, 30);
+    playTone(f / 2, 180, "sine", 0.01, 8, 38);
+  });
+  return () => {
+    stopBase();
+    stopSting();
+  };
+}
+
+function startBoNixTheme() {
+  let tick = 0;
+  const stopMain = createThemeInterval(210, () => {
+    const root = 196;
+    if (tick % 4 === 0) playTone(root, 150, "square", 0.014, 8, 24);
+    else if (tick % 4 === 1) playTone(root * 1.5, 120, "triangle", 0.012, 8, 22);
+    else if (tick % 4 === 2) playTone(root * 1.25, 120, "triangle", 0.011, 8, 22);
+    else playTone(root * 1.5, 140, "square", 0.012, 8, 26);
+    tick++;
+  });
+  return () => stopMain();
+}
+
+function startDrakeTheme() {
+  let step = 0;
+  const stopPad = createThemeInterval(240, () => {
+    const n = 220 + Math.sin(step * 0.35) * 35;
+    playTone(n, 220, "triangle", 0.011, 12, 50);
+    if (step % 3 === 0) playTone(n * 1.5, 120, "sine", 0.008, 8, 24);
+    step++;
+  });
+  const stopCrack = createThemeInterval(760, () => {
+    if (Math.random() < 0.7) sfx("icecrack");
+  });
+  return () => {
+    stopPad();
+    stopCrack();
+  };
+}
+
+function resizeIceCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  icePathCanvas.width = Math.floor(w * dpr);
+  icePathCanvas.height = Math.floor(h * dpr);
+  icePathCanvas.style.width = w + "px";
+  icePathCanvas.style.height = h + "px";
+  icePathCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
 document.addEventListener("keydown", e => {
+  ensureAudio();
   keys[e.key] = true;
   if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
     e.preventDefault();
@@ -385,6 +558,7 @@ document.addEventListener("keyup", e => {
 });
 
 playBtn.addEventListener("click", restartGame);
+document.addEventListener("pointerdown", ensureAudio, { once: true });
 
 function clearTimers() {
   clearInterval(enemyTimer);
@@ -395,16 +569,21 @@ function clearTimers() {
   clearInterval(bossBulletTimer);
   clearInterval(bossOrbTimer);
   clearInterval(boNixTimer);
+  clearInterval(drakeTimer);
 }
 
 function startTimers() {
   enemyTimer = setInterval(() => spawn("enemy"), 2200);
-  powerTimer = setInterval(() => spawn("power"), 16000);
-  kirkTimer = setInterval(() => spawn("kirk"), 26000);
+  powerTimer = setInterval(() => spawn("power"), 21000);
+  kirkTimer = setInterval(() => spawn("kirk"), 32000);
   boNixTimer = setInterval(() => {
     if (gameOver || cutsceneActive || hasShield) return;
     if (document.querySelectorAll(".bonix").length === 0) spawn("bonix");
-  }, 20000);
+  }, 26000);
+  drakeTimer = setInterval(() => {
+    if (gameOver || cutsceneActive || Date.now() < drakePowerUntil) return;
+    if (document.querySelectorAll(".drake").length === 0) spawn("drake");
+  }, 28000);
 
   // Slow long-term ramp so the game takes a while to get intense.
   pacingTimer = setInterval(() => {
@@ -416,7 +595,7 @@ function startTimers() {
 }
 
 function clearDynamicObjects() {
-  document.querySelectorAll(".orb,.enemy,.power,.kirk,.bonix,.cutscene-overlay,.boss,.boss-bullet").forEach(el => el.remove());
+  document.querySelectorAll(".orb,.enemy,.power,.kirk,.bonix,.drake,.cutscene-overlay,.boss,.boss-bullet").forEach(el => el.remove());
 }
 
 function scheduleNextBoss() {
@@ -454,6 +633,11 @@ function resetState() {
   hasShield = false;
   shieldImmuneUntil = 0;
   kirkInvincibleUntil = 0;
+  drakePowerUntil = 0;
+  nextIceTrailAt = 0;
+  icePathPoints = [];
+  stopTheme();
+  drawIcePath(Date.now());
   runStartedAt = Date.now();
 
   scoreEl.textContent = String(score);
@@ -465,7 +649,7 @@ function resetState() {
   shieldRing.style.display = "none";
   kirkShieldRing.style.display = "none";
   timeEl.textContent = formatTime(Date.now() - runStartedAt);
-  playBtn.style.display = "none";
+  playBtn.classList.remove("show");
   bossUI.style.display = "none";
   bossFill.style.width = "100%";
   bossHpText.textContent = "100%";
@@ -474,6 +658,7 @@ function resetState() {
 }
 
 function restartGame() {
+  sfx("ui");
   resetState();
   spawn("orb");
   startTimers();
@@ -535,6 +720,8 @@ function spawn(cls) {
 
 function boNixCutscene() {
   if (cutsceneActive || gameOver) return;
+  sfx("pickup");
+  setTheme(startBoNixTheme);
   cutsceneActive = true;
   invincible = true;
 
@@ -727,15 +914,6 @@ function boNixCutscene() {
   }
   requestAnimationFrame(animateDust);
 
-  let shake = 0;
-  function animateShake() {
-    if (!running) return;
-    overlay.style.transform = shake > 0 ? `translate(${(Math.random() - 0.5) * shake}px, ${(Math.random() - 0.5) * shake}px)` : "translate(0,0)";
-    shake *= 0.9;
-    requestAnimationFrame(animateShake);
-  }
-  requestAnimationFrame(animateShake);
-
   setTimeout(() => { overlay.style.opacity = "1"; }, 20);
   setTimeout(() => {
     barTop.style.height = "9%";
@@ -748,11 +926,9 @@ function boNixCutscene() {
     speedLines.style.opacity = "0.78";
     horseWrap.style.left = "68%";
     horseWrap.style.transform = "translateX(-50px)";
-    shake = 5;
   }, 480);
   setTimeout(() => {
     speedLines.style.opacity = "0.25";
-    shake = 9;
     const whiteFlash = document.createElement("div");
     whiteFlash.style.position = "absolute";
     whiteFlash.style.inset = "0";
@@ -770,6 +946,7 @@ function boNixCutscene() {
   }, 3150);
   setTimeout(() => {
     running = false;
+    stopTheme();
     overlay.remove();
     cutsceneActive = false;
     invincible = false;
@@ -780,6 +957,7 @@ function consumeShieldHit(source, removeSource) {
   if (Date.now() < shieldImmuneUntil) return true;
   if (!hasShield) return false;
   setShieldActive(false);
+  sfx("freeze");
   shieldImmuneUntil = Date.now() + 700;
   if (removeSource && source) source.remove();
 
@@ -808,6 +986,258 @@ function consumeShieldHit(source, removeSource) {
   }
   animate();
   return true;
+}
+
+function drakePowerActive() {
+  return Date.now() < drakePowerUntil;
+}
+
+function spawnIceTrail() {
+  const now = Date.now();
+  const px = x + 30;
+  const py = y + 30;
+  const last = icePathPoints[icePathPoints.length - 1];
+  if (last) {
+    const dx = px - last.x;
+    const dy = py - last.y;
+    if (dx * dx + dy * dy < 36) return;
+  }
+  icePathPoints.push({ x: px, y: py, t: now });
+}
+
+function drawIcePath(now) {
+  icePathCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+  if (icePathPoints.length < 2) return;
+  icePathCtx.lineJoin = "round";
+  icePathCtx.lineCap = "round";
+  for (let i = 1; i < icePathPoints.length; i++) {
+    const a = icePathPoints[i - 1];
+    const b = icePathPoints[i];
+    const age = now - b.t;
+    const alpha = Math.max(0, 1 - age / 5000);
+    if (alpha <= 0) continue;
+    icePathCtx.strokeStyle = `rgba(100, 196, 255, ${0.22 * alpha})`;
+    icePathCtx.lineWidth = 18;
+    icePathCtx.beginPath();
+    icePathCtx.moveTo(a.x, a.y);
+    icePathCtx.lineTo(b.x, b.y);
+    icePathCtx.stroke();
+    icePathCtx.strokeStyle = `rgba(157, 224, 255, ${0.42 * alpha})`;
+    icePathCtx.lineWidth = 10;
+    icePathCtx.beginPath();
+    icePathCtx.moveTo(a.x, a.y);
+    icePathCtx.lineTo(b.x, b.y);
+    icePathCtx.stroke();
+    icePathCtx.strokeStyle = `rgba(226, 246, 255, ${0.76 * alpha})`;
+    icePathCtx.lineWidth = 4;
+    icePathCtx.beginPath();
+    icePathCtx.moveTo(a.x, a.y);
+    icePathCtx.lineTo(b.x, b.y);
+    icePathCtx.stroke();
+  }
+}
+
+function refreshIceTrails(now) {
+  const keepFrom = now - 5000;
+  if (icePathPoints.length > 0) {
+    let cut = 0;
+    while (cut < icePathPoints.length && icePathPoints[cut].t < keepFrom) cut++;
+    if (cut > 0) icePathPoints = icePathPoints.slice(cut);
+  }
+  drawIcePath(now);
+}
+
+function pointToSegmentDistance(px, py, x1, y1, x2, y2) {
+  const dx = x2 - x1;
+  const dy = y2 - y1;
+  if (dx === 0 && dy === 0) {
+    const sx = px - x1;
+    const sy = py - y1;
+    return Math.sqrt(sx * sx + sy * sy);
+  }
+  const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / (dx * dx + dy * dy)));
+  const cx = x1 + t * dx;
+  const cy = y1 + t * dy;
+  const ox = px - cx;
+  const oy = py - cy;
+  return Math.sqrt(ox * ox + oy * oy);
+}
+
+function enemyTouchesIcePath(enemyEl) {
+  if (icePathPoints.length < 2) return false;
+  const ex = parseFloat(enemyEl.style.left) + 16;
+  const ey = parseFloat(enemyEl.style.top) + 16;
+  for (let i = 1; i < icePathPoints.length; i++) {
+    const a = icePathPoints[i - 1];
+    const b = icePathPoints[i];
+    if (pointToSegmentDistance(ex, ey, a.x, a.y, b.x, b.y) <= 18) return true;
+  }
+  return false;
+}
+
+function freezeEnemy(enemyEl) {
+  const now = Date.now();
+  if (!enemyEl.dataset.prevBg) enemyEl.dataset.prevBg = enemyEl.style.background || "";
+  if (!enemyEl.dataset.prevShadow) enemyEl.dataset.prevShadow = enemyEl.style.boxShadow || "";
+  if (!enemyEl.dataset.prevBorder) enemyEl.dataset.prevBorder = enemyEl.style.border || "";
+  enemyEl.dataset.frozenUntil = String(now + 10000);
+  enemyEl.style.background = "linear-gradient(165deg, #d41f1f, #8f0d0d)";
+  enemyEl.style.boxShadow = "0 0 12px rgba(255,54,54,0.95), 0 0 22px rgba(116,206,255,0.9)";
+  enemyEl.style.border = "1px solid rgba(150,226,255,0.95)";
+}
+
+function unfreezeEnemy(enemyEl) {
+  if (!enemyEl.dataset.frozenUntil) return;
+  enemyEl.style.background = enemyEl.dataset.prevBg || "";
+  enemyEl.style.boxShadow = enemyEl.dataset.prevShadow || "";
+  enemyEl.style.border = enemyEl.dataset.prevBorder || "";
+  delete enemyEl.dataset.frozenUntil;
+  delete enemyEl.dataset.prevBg;
+  delete enemyEl.dataset.prevShadow;
+  delete enemyEl.dataset.prevBorder;
+}
+
+function drakeCutscene() {
+  if (cutsceneActive || gameOver) return;
+  sfx("pickup");
+  setTheme(startDrakeTheme);
+  cutsceneActive = true;
+  invincible = true;
+
+  const overlay = document.createElement("div");
+  overlay.className = "cutscene-overlay";
+  overlay.style.position = "absolute";
+  overlay.style.inset = "0";
+  overlay.style.zIndex = "14600";
+  overlay.style.opacity = "0";
+  overlay.style.transition = "opacity 350ms ease";
+  overlay.style.overflow = "hidden";
+  overlay.style.background = "#071327";
+  game.appendChild(overlay);
+
+  const frost = document.createElement("img");
+  frost.src = "frost.jpeg";
+  frost.onerror = () => { frost.src = "ocean.jpeg"; };
+  frost.style.position = "absolute";
+  frost.style.inset = "0";
+  frost.style.width = "100%";
+  frost.style.height = "100%";
+  frost.style.objectFit = "cover";
+  frost.style.filter = "brightness(0.8) saturate(1.15) contrast(1.08)";
+  overlay.appendChild(frost);
+
+  const snow = [];
+  for (let i = 0; i < 26; i++) {
+    const flake = document.createElement("div");
+    const size = 2 + Math.random() * 4;
+    flake.style.position = "absolute";
+    flake.style.width = size + "px";
+    flake.style.height = size + "px";
+    flake.style.borderRadius = "50%";
+    flake.style.background = "rgba(225,245,255,0.9)";
+    flake.style.boxShadow = "0 0 8px rgba(191,233,255,0.75)";
+    overlay.appendChild(flake);
+    snow.push({
+      el: flake,
+      x: Math.random() * window.innerWidth,
+      y: -Math.random() * window.innerHeight,
+      vy: 1 + Math.random() * 2.4,
+      drift: (Math.random() - 0.5) * 0.8
+    });
+  }
+
+  let snowOn = true;
+  function animateSnow() {
+    if (!snowOn) return;
+    snow.forEach(f => {
+      f.x += f.drift;
+      f.y += f.vy;
+      if (f.y > window.innerHeight + 8) {
+        f.y = -10;
+        f.x = Math.random() * window.innerWidth;
+      }
+      if (f.x < -8) f.x = window.innerWidth + 4;
+      if (f.x > window.innerWidth + 8) f.x = -4;
+      f.el.style.transform = `translate(${f.x}px,${f.y}px)`;
+    });
+    requestAnimationFrame(animateSnow);
+  }
+  requestAnimationFrame(animateSnow);
+
+  for (let i = 0; i < 6; i++) {
+    const pillar = document.createElement("div");
+    pillar.style.position = "absolute";
+    pillar.style.bottom = "0";
+    pillar.style.left = (6 + i * 17) + "%";
+    pillar.style.width = (32 + Math.random() * 18) + "px";
+    pillar.style.height = (220 + Math.random() * 200) + "px";
+    pillar.style.background = "linear-gradient(180deg, rgba(205,244,255,0.88), rgba(84,157,245,0.7), rgba(35,78,170,0.38))";
+    pillar.style.borderRadius = "10px 10px 0 0";
+    pillar.style.boxShadow = "0 0 18px rgba(125,200,255,0.75)";
+    pillar.style.opacity = "0.66";
+    overlay.appendChild(pillar);
+  }
+
+  for (let i = 0; i < 4; i++) {
+    const crack = document.createElement("div");
+    crack.style.position = "absolute";
+    crack.style.left = (22 + i * 14) + "%";
+    crack.style.bottom = "11%";
+    crack.style.width = "0px";
+    crack.style.height = "4px";
+    crack.style.background = "linear-gradient(90deg, rgba(201,238,255,0.95), rgba(132,194,255,0.1))";
+    crack.style.boxShadow = "0 0 12px rgba(158,220,255,0.85)";
+    crack.style.transform = `rotate(${(-18 + i * 12)}deg)`;
+    crack.style.transition = "width 520ms ease";
+    overlay.appendChild(crack);
+    setTimeout(() => {
+      crack.style.width = (220 + Math.random() * 120) + "px";
+      sfx("icecrack");
+    }, 260 + i * 120);
+  }
+
+  const drake = document.createElement("img");
+  drake.src = "drake.jpeg";
+  drake.style.position = "absolute";
+  drake.style.left = "50%";
+  drake.style.top = "67%";
+  drake.style.width = "320px";
+  drake.style.height = "320px";
+  drake.style.objectFit = "cover";
+  drake.style.borderRadius = "14px";
+  drake.style.transform = "translate(-50%,220px) scale(0.62)";
+  drake.style.filter = "drop-shadow(0 0 24px rgba(130,201,255,0.95))";
+  drake.style.transition = "transform 950ms cubic-bezier(.2,.82,.2,1)";
+  overlay.appendChild(drake);
+
+  const title = document.createElement("div");
+  title.textContent = "DRAKE, KING OF FROST";
+  title.style.position = "absolute";
+  title.style.left = "50%";
+  title.style.top = "14%";
+  title.style.transform = "translate(-50%,-50%)";
+  title.style.fontFamily = "monospace";
+  title.style.fontSize = "clamp(18px,3.4vw,42px)";
+  title.style.letterSpacing = "4px";
+  title.style.color = "#d6f1ff";
+  title.style.textShadow = "0 0 20px rgba(124,208,255,0.95)";
+  title.style.opacity = "0";
+  title.style.transition = "opacity 350ms ease";
+  overlay.appendChild(title);
+
+  setTimeout(() => { overlay.style.opacity = "1"; }, 20);
+  setTimeout(() => {
+    title.style.opacity = "1";
+    drake.style.transform = "translate(-50%,-50%) scale(1)";
+  }, 280);
+  setTimeout(() => { overlay.style.opacity = "0"; }, 2650);
+  setTimeout(() => {
+    snowOn = false;
+    stopTheme();
+    overlay.remove();
+    cutsceneActive = false;
+    invincible = false;
+  }, 3050);
 }
 
 function spawnEnemyNearBoss() {
@@ -984,6 +1414,7 @@ function startBossIntro() {
 
 function startBossFight() {
   if (bossActive || gameOver || cutsceneActive) return;
+  sfx("boss");
   clearInterval(enemyTimer);
   clearInterval(powerTimer);
   clearInterval(kirkTimer);
@@ -993,6 +1424,7 @@ function startBossFight() {
 
 function kirkFinisherCutscene() {
   if (!bossActive || !bossEl || cutsceneActive) return;
+  sfx("slash");
   cutsceneActive = true;
   invincible = true;
   clearInterval(bossMinionTimer);
@@ -1061,6 +1493,7 @@ function kirkFinisherCutscene() {
   setTimeout(() => { kirk.style.left = (rect.left - 190) + "px"; }, 250);
   setTimeout(() => {
     hammer.style.transform = "rotate(22deg)";
+    sfx("slash");
     animeDeathBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, overlay);
   }, 980);
   setTimeout(() => { overlay.style.opacity = "0"; }, 1650);
@@ -1101,12 +1534,16 @@ function endBossFight(victory) {
 
   if (!gameOver) {
     enemyTimer = setInterval(() => spawn("enemy"), 2200);
-    powerTimer = setInterval(() => spawn("power"), 16000);
-    kirkTimer = setInterval(() => spawn("kirk"), 26000);
+    powerTimer = setInterval(() => spawn("power"), 21000);
+    kirkTimer = setInterval(() => spawn("kirk"), 32000);
     boNixTimer = setInterval(() => {
       if (gameOver || cutsceneActive || hasShield) return;
       if (document.querySelectorAll(".bonix").length === 0) spawn("bonix");
-    }, 20000);
+    }, 26000);
+    drakeTimer = setInterval(() => {
+      if (gameOver || cutsceneActive || Date.now() < drakePowerUntil) return;
+      if (document.querySelectorAll(".drake").length === 0) spawn("drake");
+    }, 34000);
     scheduleNextBoss();
   }
 }
@@ -1242,6 +1679,8 @@ function smoothEnemyWipe(overlayHost) {
 
 function devitoCutscene() {
   if (cutsceneActive || gameOver) return;
+  sfx("pickup");
+  setTheme(startDevitoTheme);
   cutsceneActive = true;
   invincible = true;
 
@@ -1365,9 +1804,10 @@ function devitoCutscene() {
         slash.style.transform = `translate(-50%,-50%) rotate(${angle}deg) scale(26,0.36)`;
         slash.style.opacity = "0";
       });
-      setTimeout(() => slash.remove(), 260);
-      shake = 10;
-      whiteFlash.style.opacity = "0.85";
+    setTimeout(() => slash.remove(), 260);
+    sfx("slash");
+    shake = 10;
+    whiteFlash.style.opacity = "0.85";
       setTimeout(() => {
         whiteFlash.style.opacity = "0";
       }, 70);
@@ -1427,6 +1867,7 @@ function devitoCutscene() {
   }, 3300);
 
   setTimeout(() => {
+    stopTheme();
     cutsceneActive = false;
     invincible = false;
     overlay.remove();
@@ -1435,6 +1876,7 @@ function devitoCutscene() {
 
 function kirk() {
   if (cutsceneActive || gameOver) return;
+  setTheme(startKirkTheme);
   cutsceneActive = true;
   invincible = true;
   kirkInvincibleUntil = Date.now() + 10000;
@@ -1654,6 +2096,7 @@ function kirk() {
   }, 4300);
 
   setTimeout(() => {
+    stopTheme();
     overlay.remove();
     undead.forEach(obj => {
       obj.el.style.zIndex = "";
@@ -1673,6 +2116,8 @@ function kirk() {
 
 function death() {
   gameOver = true;
+  stopTheme();
+  sfx("death");
   if (bossActive) endBossFight(false);
   clearTimers();
   runStartedAt = Date.now();
@@ -1707,7 +2152,7 @@ function death() {
   }
 
   setTimeout(() => {
-    playBtn.style.display = "block";
+    playBtn.classList.add("show");
   }, 500);
 }
 
@@ -1745,8 +2190,16 @@ function loop() {
   player.style.left = x + "px";
   player.style.top = y + "px";
 
+  const now = Date.now();
+  refreshIceTrails(now);
+  if (drakePowerActive() && now >= nextIceTrailAt && (Math.abs(velX) + Math.abs(velY) > 0.8)) {
+    spawnIceTrail();
+    nextIceTrailAt = now + 90;
+    refreshIceTrails(now);
+  }
+
   if (!bossActive && !cutsceneActive) {
-    if (Date.now() >= nextBossAt) {
+    if (now >= nextBossAt) {
       startBossFight();
     }
   }
@@ -1769,6 +2222,27 @@ function loop() {
   });
 
   document.querySelectorAll(".enemy").forEach(e => {
+    const frozenUntil = parseInt(e.dataset.frozenUntil || "0", 10);
+    if (frozenUntil > now) {
+      if (enemyTouchesIcePath(e)) {
+        const r = e.getBoundingClientRect();
+        animeDeathBurst(r.left + r.width / 2, r.top + r.height / 2, game);
+        e.remove();
+        sfx("shatter");
+        score += 5;
+        scoreEl.textContent = String(score);
+        return;
+      }
+      if (!invincible && collide(player, e) && !consumeShieldHit(e, true)) death();
+      return;
+    }
+    if (e.dataset.frozenUntil) unfreezeEnemy(e);
+    if (enemyTouchesIcePath(e)) {
+      freezeEnemy(e);
+      sfx("freeze");
+      return;
+    }
+
     let ex = parseFloat(e.style.left);
     let ey = parseFloat(e.style.top);
     const dx = x - ex;
@@ -1784,6 +2258,7 @@ function loop() {
   document.querySelectorAll(".orb").forEach(o => {
     if (collide(player, o)) {
       o.remove();
+      sfx("orb");
       score++;
       speed += 0.6;
       enemySpeed += 0.03;
@@ -1801,6 +2276,7 @@ function loop() {
   document.querySelectorAll(".power").forEach(p => {
     if (collide(player, p)) {
       p.remove();
+      sfx("pickup");
       devitoCutscene();
     }
   });
@@ -1808,6 +2284,7 @@ function loop() {
   document.querySelectorAll(".kirk").forEach(k => {
     if (collide(player, k)) {
       k.remove();
+      sfx("pickup");
       kirk();
     }
   });
@@ -1816,9 +2293,20 @@ function loop() {
     if (collide(player, bn)) {
       bn.remove();
       if (!hasShield) {
+        sfx("pickup");
         setShieldActive(true);
         boNixCutscene();
       }
+    }
+  });
+
+  document.querySelectorAll(".drake").forEach(dk => {
+    if (collide(player, dk)) {
+      dk.remove();
+      sfx("pickup");
+      drakePowerUntil = Date.now() + 20000;
+      nextIceTrailAt = Date.now();
+      drakeCutscene();
     }
   });
 
@@ -1840,6 +2328,12 @@ function startGame() {
 startO.addEventListener("click", () => {
   startGame();
 });
+
+window.addEventListener("resize", () => {
+  resizeIceCanvas();
+  drawIcePath(Date.now());
+});
+resizeIceCanvas();
 </script>
 </body>
 </html>
