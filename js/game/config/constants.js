@@ -1,0 +1,41 @@
+export const CONSTANTS = {
+  ENEMY_SAFE_RADIUS: 240,
+  WRAP_GRACE_MS: 220,
+  ORB_SAFE_RADIUS: 120,
+  POWERUP_SAFE_RADIUS: 120,
+  ENEMY_LOCAL_DENSITY_RADIUS: 140,
+  MAX_ENEMIES_BASE: 7,
+  MAX_ENEMIES_RAMP: 12,
+  ENEMY_SPAWN_SAFE_MS: 700,
+  CUTSCENE_TIME_SCALE: 0.65,
+  ORB_CORNER_SAFE_RADIUS: 140,
+  ORB_EDGE_SAFE_MARGIN: 92,
+  PLAYER_START_SPEED: 18,
+  PLAYER_ACCELERATION: 1.2,
+  PLAYER_FRICTION: 0.9,
+  ENEMY_START_SPEED: 0.6,
+  FX_SETTINGS: {
+    deathBurstParticles: 8,
+    devitoPetals: 52,
+    boNixDust: 12,
+    kirkUndead: 40,
+    wipeBatchSize: 12,
+    wipeBurstStride: 2
+  }
+};
+
+export const SCHEDULER_CHANNELS = {
+  REALTIME: "realtime",
+  GAMEPLAY: "gameplay"
+};
+
+export const PHASES = {
+  BOOT: "BOOT",
+  MENU: "MENU",
+  RUNNING: "RUNNING",
+  PAUSED: "PAUSED",
+  CUTSCENE: "CUTSCENE",
+  BOSS: "BOSS",
+  GAME_OVER: "GAME_OVER",
+  TRANSITION: "TRANSITION"
+};

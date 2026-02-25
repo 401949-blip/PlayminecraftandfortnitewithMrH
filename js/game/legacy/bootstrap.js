@@ -74,10 +74,15 @@ function setPaused(nextPaused) {
   if (!gameStarted || gameOver || menuOpen || transitioningMenu) return;
   paused = nextPaused;
   if (paused) {
+    if (!pauseStartedAt) pauseStartedAt = Date.now();
     showOverlayWithAnimation(pauseMenu);
     pauseMenu.setAttribute("aria-hidden", "false");
     game.classList.add("paused-mode");
   } else {
+    if (pauseStartedAt) {
+      pausedAccumulatedMs += Math.max(0, Date.now() - pauseStartedAt);
+      pauseStartedAt = 0;
+    }
     hideOverlayWithAnimation(pauseMenu, () => {
       pauseMenu.setAttribute("aria-hidden", "true");
       game.classList.remove("paused-mode");

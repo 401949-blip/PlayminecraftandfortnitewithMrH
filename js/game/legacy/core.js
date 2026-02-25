@@ -87,6 +87,12 @@ function updateHighScoreUI() {
   if (deathHighScoreValueEl) deathHighScoreValueEl.textContent = String(highScore);
 }
 
+function getRunElapsedMs(now) {
+  const t = now || Date.now();
+  const livePauseMs = paused && pauseStartedAt ? (t - pauseStartedAt) : 0;
+  return Math.max(0, t - runStartedAt - pausedAccumulatedMs - livePauseMs);
+}
+
 function startTimers() {
   enemyTimer = setInterval(() => {
     if (!gameOver && !cutsceneActive && !paused && !menuOpen && canSpawnEnemy()) spawn("enemy");
@@ -171,6 +177,8 @@ function resetState() {
   stopTheme();
   drawIcePath(Date.now());
   runStartedAt = Date.now();
+  pausedAccumulatedMs = 0;
+  pauseStartedAt = 0;
 
   scoreEl.textContent = String(score);
   spdEl.textContent = speed.toFixed(1);
@@ -180,7 +188,7 @@ function resetState() {
   player.style.top = y + "px";
   shieldRing.style.display = "none";
   kirkShieldRing.style.display = "none";
-  timeEl.textContent = formatTime(Date.now() - runStartedAt);
+  timeEl.textContent = formatTime(getRunElapsedMs());
   playBtn.classList.remove("show");
   deathExitBtn.classList.remove("show");
   deathScoreEl.classList.remove("show");

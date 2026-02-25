@@ -31,7 +31,7 @@ function loop() {
   const dt = Math.max(0.5, Math.min(1.8, frameDt));
   lastFrameAt = frameNow;
 
-  timeEl.textContent = formatTime(Date.now() - runStartedAt);
+  timeEl.textContent = formatTime(getRunElapsedMs());
   updateShieldRingPosition();
   updateKirkShieldRing();
 

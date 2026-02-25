@@ -1,0 +1,23 @@
+export const STAGE_BACKGROUNDS = [
+  "../assets/images/Backgrounds/wallhaven-0w5ggp.jpg",
+  "../assets/images/Backgrounds/wallhaven-3qqdg6.jpg",
+  "../assets/images/Backgrounds/wallhaven-3qw9y6.jpg",
+  "../assets/images/Backgrounds/wallhaven-6lm38l.jpg",
+  "../assets/images/Backgrounds/wallhaven-76zg7o.jpg",
+  "../assets/images/Backgrounds/wallhaven-7j9y3e.jpg",
+  "../assets/images/Backgrounds/wallhaven-958xx1.jpg",
+  "../assets/images/Backgrounds/wallhaven-9o2x61.jpg",
+  "../assets/images/Backgrounds/wallhaven-9ozv1w.jpg",
+  "../assets/images/Backgrounds/wallhaven-gw5ypd.jpg",
+  "../assets/images/Backgrounds/wallhaven-lyzx6q.jpg",
+  "../assets/images/Backgrounds/wallhaven-nz25zw.jpg",
+  "../assets/images/Backgrounds/wallhaven-nzpxkv.jpg",
+  "../assets/images/Backgrounds/wallhaven-ogyeol.jpg",
+  "../assets/images/Backgrounds/wallhaven-polq8m.jpg",
+  "../assets/images/Backgrounds/wallhaven-pow2wp.jpg",
+  "../assets/images/Backgrounds/wallhaven-qr27rq.jpg",
+  "../assets/images/Backgrounds/wallhaven-xezvl3.jpg",
+  "../assets/images/Backgrounds/wallhaven-yq56d7.jpg",
+  "../assets/images/Backgrounds/wallhaven-yq5o8k.jpg",
+  "../assets/images/Backgrounds/wallhaven-yq8k2d.png"
+];

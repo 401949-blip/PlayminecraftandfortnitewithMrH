@@ -193,7 +193,7 @@ function death() {
   pendingBackgroundReroll = true;
   cutsceneActive = false;
   invincible = false;
-  const survivedMs = Math.max(0, Date.now() - runStartedAt);
+  const survivedMs = getRunElapsedMs();
   game.classList.add("death-mode");
   stopTheme();
   sfx("death");
