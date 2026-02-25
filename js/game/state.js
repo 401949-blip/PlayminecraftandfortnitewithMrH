@@ -8,6 +8,7 @@ const MAX_ENEMIES_RAMP = 12;
 const ENEMY_SPAWN_SAFE_MS = 700;
 const CUTSCENE_TIME_SCALE = 0.65;
 const ORB_CORNER_SAFE_RADIUS = 140;
+const ORB_EDGE_SAFE_MARGIN = 92;
 
 const startScreen = document.getElementById("start");
 const startO = document.getElementById("startO");

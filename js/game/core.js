@@ -368,6 +368,12 @@ function spawn(cls) {
     if (cls === "orb") {
       const px = sx + 11;
       const py = sy + 11;
+      const nearEdge =
+        px < ORB_EDGE_SAFE_MARGIN ||
+        py < ORB_EDGE_SAFE_MARGIN ||
+        px > window.innerWidth - ORB_EDGE_SAFE_MARGIN ||
+        py > window.innerHeight - ORB_EDGE_SAFE_MARGIN;
+      if (nearEdge) continue;
       const cornerTooFar =
         (px < ORB_CORNER_SAFE_RADIUS && py < ORB_CORNER_SAFE_RADIUS) ||
         (px > window.innerWidth - ORB_CORNER_SAFE_RADIUS && py < ORB_CORNER_SAFE_RADIUS) ||
