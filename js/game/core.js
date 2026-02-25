@@ -65,13 +65,21 @@ function getCookieValue(name) {
 }
 
 function loadHighScoreFromCookie() {
-  const parsed = parseInt(getCookieValue("website_game_highscore"), 10);
-  highScore = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  const cookieParsed = parseInt(getCookieValue("website_game_highscore"), 10);
+  let best = Number.isFinite(cookieParsed) && cookieParsed > 0 ? cookieParsed : 0;
+  try {
+    const lsParsed = parseInt(localStorage.getItem("website_game_highscore") || "0", 10);
+    if (Number.isFinite(lsParsed) && lsParsed > best) best = lsParsed;
+  } catch (_) {}
+  highScore = best;
 }
 
 function saveHighScoreToCookie() {
   const oneYearSeconds = 60 * 60 * 24 * 365;
   document.cookie = `website_game_highscore=${encodeURIComponent(String(highScore))}; max-age=${oneYearSeconds}; path=/; samesite=lax`;
+  try {
+    localStorage.setItem("website_game_highscore", String(highScore));
+  } catch (_) {}
 }
 
 function updateHighScoreUI() {
