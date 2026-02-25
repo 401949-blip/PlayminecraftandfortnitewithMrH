@@ -1,0 +1,31 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  background: #0b0b0b;
+  font-family: Courier, monospace;
+}
+
+#start {
+  position: fixed;
+  inset: 0;
+  background: url('../assets/images/ocean.jpeg') center / cover no-repeat;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#start h1 {
+  margin: 0;
+  font-size: clamp(3rem, 8vw, 5rem);
+  color: black;
+  text-shadow: 2px 2px 5px rgba(255, 255, 255, 0.7);
+  font-family: Arial, sans-serif;
+  font-weight: 700;
+}
+
+#startO {
+  display: inline-block;
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+}
