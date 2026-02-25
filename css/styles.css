@@ -29,6 +29,14 @@ body {
 #game.menu-mode #bossUI,
 #game.menu-mode #bossAmbience,
 #game.menu-mode #deathScreen,
+#game.menu-mode .orb,
+#game.menu-mode .enemy,
+#game.menu-mode .power,
+#game.menu-mode .kirk,
+#game.menu-mode .bonix,
+#game.menu-mode .drake,
+#game.menu-mode .boss,
+#game.menu-mode .boss-bullet,
 #game.menu-mode #shieldRing,
 #game.menu-mode #kirkShieldRing,
 #game.menu-mode #player {
@@ -74,6 +82,11 @@ body {
   animation: menuOut 240ms cubic-bezier(.4,0,.2,1) both;
 }
 
+#startMenu {
+  flex-direction: column;
+  gap: 16px;
+}
+
 .pause-overlay {
   background: rgba(8, 10, 16, 0.35);
   backdrop-filter: blur(8px) brightness(0.72);
@@ -91,6 +104,36 @@ body {
   background: transparent;
   border: 0;
   box-shadow: none;
+}
+
+#confettiLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 22025;
+}
+
+.confetti-piece {
+  position: absolute;
+  border-radius: 1px;
+  opacity: 0;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.45);
+  animation: confettiDrop linear forwards;
+}
+
+.highscore-display {
+  color: #f2fbff;
+  font-family: "GameFont", "Segoe UI", Tahoma, sans-serif;
+  font-size: clamp(0.92rem, 2.2vw, 1.1rem);
+  letter-spacing: 0.8px;
+  text-shadow: 0 0 14px rgba(163, 220, 255, 0.5), 0 6px 18px rgba(0, 0, 0, 0.58);
+  animation: highscoreFloat 2.1s ease-in-out infinite;
+  transform: translateY(3px);
+}
+
+.highscore-display span {
+  color: #ffffff;
 }
 
 .menu-btn {
@@ -645,6 +688,32 @@ body {
   100% { opacity: 0.92; transform: translateY(0) scale(1); filter: blur(0); }
 }
 
+@keyframes highscoreFloat {
+  0% { transform: translateY(2px); opacity: 0.88; }
+  50% { transform: translateY(-1px); opacity: 1; }
+  100% { transform: translateY(2px); opacity: 0.88; }
+}
+
+@keyframes confettiDrop {
+  0% {
+    opacity: 0;
+    transform: translate(0, -6vh) rotate(0deg);
+  }
+  10% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--drift, 0px), 112vh) rotate(var(--spin, 360deg));
+  }
+}
+
+@keyframes newRecordPulse {
+  0% { transform: translateY(10px) scale(0.98); filter: brightness(1); }
+  40% { transform: translateY(0) scale(1.06); filter: brightness(1.28); }
+  100% { transform: translateY(0) scale(1); filter: brightness(1.08); }
+}
+
 @keyframes gameReveal {
   0% { filter: blur(3px) brightness(0.55); opacity: 0.85; }
   100% { filter: blur(0) brightness(1); opacity: 1; }
@@ -712,7 +781,7 @@ body {
   transform: translate(-50%, -50%) scale(0.985);
   width: min(560px, 88vw);
   display: grid;
-  gap: 14px;
+  gap: 12px;
   justify-items: center;
   opacity: 0;
   visibility: hidden;
@@ -744,6 +813,35 @@ body {
   pointer-events: none;
   transform: translateY(10px) scale(0.98);
   text-shadow: 0 8px 24px rgba(0, 0, 0, 0.72), 0 0 18px rgba(175, 217, 255, 0.32);
+}
+
+#newHighScoreText {
+  font-family: "GameFont", "Segoe UI", Tahoma, sans-serif;
+  font-size: clamp(1.02rem, 2.8vw, 1.35rem);
+  color: #fff4c8;
+  letter-spacing: 1.4px;
+  text-shadow: 0 0 18px rgba(255, 225, 133, 0.95), 0 8px 20px rgba(0, 0, 0, 0.62);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px) scale(0.98);
+}
+
+#newHighScoreText.show {
+  opacity: 1;
+  visibility: visible;
+  animation: deathItemIn 300ms cubic-bezier(.2,.72,.2,1) both, highscoreFloat 1.8s ease-in-out infinite;
+}
+
+#deathHighScore {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px) scale(0.98);
+}
+
+#deathScreen.show #deathHighScore {
+  opacity: 1;
+  visibility: visible;
+  animation: deathSubIn 340ms cubic-bezier(.2,.72,.2,1) both;
 }
 
 #deathScore {
@@ -785,6 +883,12 @@ body {
   opacity: 1;
   visibility: visible;
   animation: deathItemIn 360ms cubic-bezier(.2,.72,.2,1) both;
+}
+
+#deathScore.new-record {
+  color: #fff5cf;
+  text-shadow: 0 0 24px rgba(255, 223, 125, 0.92), 0 9px 24px rgba(0, 0, 0, 0.64);
+  animation: newRecordPulse 580ms cubic-bezier(.2,.72,.2,1) both;
 }
 
 #deathTime.show {

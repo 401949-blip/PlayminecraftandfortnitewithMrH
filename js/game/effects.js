@@ -5,8 +5,10 @@ function collide(a, b) {
   const ay = A.top + A.height / 2;
   const bx = B.left + B.width / 2;
   const by = B.top + B.height / 2;
-  const ar = Math.min(A.width, A.height) * 0.42;
-  const br = Math.min(B.width, B.height) * 0.42;
+  const orbScaleA = a.classList && a.classList.contains("orb") ? 1.65 : 1;
+  const orbScaleB = b.classList && b.classList.contains("orb") ? 1.65 : 1;
+  const ar = Math.min(A.width, A.height) * 0.42 * orbScaleA;
+  const br = Math.min(B.width, B.height) * 0.42 * orbScaleB;
   const dx = ax - bx;
   const dy = ay - by;
   const rr = ar + br;
@@ -159,15 +161,45 @@ function smoothEnemyWipe(overlayHost) {
   addScore(total);
 }
 
+function clearHighScoreCelebration() {
+  if (!confettiLayer) return;
+  confettiLayer.innerHTML = "";
+}
+
+function launchHighScoreConfetti() {
+  if (!confettiLayer) return;
+  clearHighScoreCelebration();
+  const colors = ["#8ed8ff", "#ffd8a8", "#bfffb5", "#ffd1dc", "#fff4a8", "#d3e1ff"];
+  const count = 95;
+  for (let i = 0; i < count; i++) {
+    const piece = document.createElement("div");
+    piece.className = "confetti-piece";
+    piece.style.left = (Math.random() * 100).toFixed(2) + "%";
+    piece.style.top = (-12 - Math.random() * 18).toFixed(2) + "%";
+    piece.style.width = (4 + Math.random() * 7).toFixed(2) + "px";
+    piece.style.height = (7 + Math.random() * 11).toFixed(2) + "px";
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDuration = (1.6 + Math.random() * 1.4).toFixed(2) + "s";
+    piece.style.animationDelay = (Math.random() * 0.35).toFixed(2) + "s";
+    piece.style.setProperty("--drift", ((Math.random() - 0.5) * 180).toFixed(2) + "px");
+    piece.style.setProperty("--spin", (220 + Math.random() * 360).toFixed(1) + "deg");
+    confettiLayer.appendChild(piece);
+    piece.addEventListener("animationend", () => piece.remove(), { once: true });
+  }
+}
+
 function death() {
   gameOver = true;
   pendingBackgroundReroll = true;
+  cutsceneActive = false;
+  invincible = false;
   const survivedMs = Math.max(0, Date.now() - runStartedAt);
   game.classList.add("death-mode");
   stopTheme();
   sfx("death");
   if (bossActive) endBossFight(false);
   clearTimers();
+  clearDynamicObjects();
   runStartedAt = Date.now();
   timeEl.textContent = "00:00";
   player.style.opacity = "0";
@@ -200,6 +232,20 @@ function death() {
   }
 
   setTimeout(() => {
+    const beatHighScore = score > highScore;
+    if (beatHighScore) {
+      highScore = score;
+      saveHighScoreToCookie();
+      newHighScoreRun = true;
+      launchHighScoreConfetti();
+      deathScoreEl.classList.add("new-record");
+      newHighScoreTextEl.classList.add("show");
+    } else {
+      deathScoreEl.classList.remove("new-record");
+      newHighScoreTextEl.classList.remove("show");
+      clearHighScoreCelebration();
+    }
+    updateHighScoreUI();
     deathScoreEl.textContent = "Score: " + String(score);
     deathTimeEl.textContent = "Time Survived: " + formatTime(survivedMs);
     deathScreenEl.classList.add("show");

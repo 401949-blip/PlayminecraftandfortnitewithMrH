@@ -54,6 +54,31 @@ function applyRandomStageBackground() {
   game.style.setProperty("--stage-bg", `url('${choice}')`);
 }
 
+function getCookieValue(name) {
+  const token = `${name}=`;
+  const all = document.cookie ? document.cookie.split(";") : [];
+  for (let i = 0; i < all.length; i++) {
+    const part = all[i].trim();
+    if (part.startsWith(token)) return decodeURIComponent(part.slice(token.length));
+  }
+  return "";
+}
+
+function loadHighScoreFromCookie() {
+  const parsed = parseInt(getCookieValue("website_game_highscore"), 10);
+  highScore = Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function saveHighScoreToCookie() {
+  const oneYearSeconds = 60 * 60 * 24 * 365;
+  document.cookie = `website_game_highscore=${encodeURIComponent(String(highScore))}; max-age=${oneYearSeconds}; path=/; samesite=lax`;
+}
+
+function updateHighScoreUI() {
+  if (menuHighScoreValueEl) menuHighScoreValueEl.textContent = String(highScore);
+  if (deathHighScoreValueEl) deathHighScoreValueEl.textContent = String(highScore);
+}
+
 function startTimers() {
   enemyTimer = setInterval(() => {
     if (!gameOver && !cutsceneActive && !paused && !menuOpen && canSpawnEnemy()) spawn("enemy");
@@ -156,6 +181,11 @@ function resetState() {
   deathScreenEl.setAttribute("aria-hidden", "true");
   deathScoreEl.textContent = "";
   deathTimeEl.textContent = "";
+  deathScoreEl.classList.remove("new-record");
+  newHighScoreTextEl.classList.remove("show");
+  clearHighScoreCelebration();
+  newHighScoreRun = false;
+  updateHighScoreUI();
   game.classList.remove("death-mode");
   bossUI.style.display = "none";
   bossFill.style.width = "100%";
@@ -255,6 +285,7 @@ function formatTime(ms) {
 }
 
 function spawn(cls) {
+  if (gameOver || menuOpen) return null;
   if (cls === "enemy" && !canSpawnEnemy()) return null;
   if (["power", "kirk", "bonix", "drake"].includes(cls)) {
     const activePowerups = document.querySelectorAll(".power,.kirk,.bonix,.drake").length;

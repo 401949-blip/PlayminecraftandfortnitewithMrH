@@ -9,6 +9,7 @@
 <body>
 <div id="game" tabindex="0">
   <canvas id="icePathCanvas"></canvas>
+  <div id="confettiLayer" aria-hidden="true"></div>
   <div id="hudTop">
     <div id="ui">
       <span class="hud-text">Score: <span id="score">0</span></span>
@@ -24,6 +25,8 @@
   </div>
   <div id="bossAmbience"></div>
   <div id="deathScreen" aria-hidden="true">
+    <div id="newHighScoreText">NEW HIGH SCORE!</div>
+    <div id="deathHighScore" class="highscore-display">High Score: <span id="deathHighScoreValue">0</span></div>
     <div id="deathScore"></div>
     <div id="deathTime"></div>
     <button id="playAgain" class="menu-btn" type="button"><span class="btn-label">Play Again</span></button>
@@ -35,6 +38,7 @@
   <img src="../assets/images/hathaway.jpeg" id="player" alt="player">
 
   <div id="startMenu" class="menu-overlay" aria-hidden="false">
+    <div id="menuHighScore" class="highscore-display">High Score: <span id="menuHighScoreValue">0</span></div>
     <button id="startGameBtn" class="menu-btn" type="button"><span class="btn-label">Start Game</span></button>
   </div>
 

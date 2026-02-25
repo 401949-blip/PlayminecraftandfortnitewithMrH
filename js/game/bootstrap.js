@@ -36,6 +36,7 @@ function showStartMenu() {
   pauseMenu.classList.add("hidden");
   startMenu.setAttribute("aria-hidden", "false");
   pauseMenu.setAttribute("aria-hidden", "true");
+  updateHighScoreUI();
 }
 
 function exitToMainMenu() {
@@ -137,6 +138,8 @@ resumeGameBtn.addEventListener("click", () => setPaused(false));
 exitMenuBtn.addEventListener("click", exitToMainMenu);
 
 applyRandomStageBackground();
+loadHighScoreFromCookie();
+updateHighScoreUI();
 
 if (startO) {
   startO.addEventListener("click", () => {
