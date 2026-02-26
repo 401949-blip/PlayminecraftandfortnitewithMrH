@@ -118,11 +118,32 @@ function startTimers() {
 }
 
 function clearDynamicObjects() {
-  document.querySelectorAll(".orb,.enemy,.power,.kirk,.bonix,.drake,.cutscene-overlay,.boss,.boss-bullet").forEach(el => el.remove());
+  document.querySelectorAll(".orb,.enemy,.power,.kirk,.bonix,.drake,.cutscene-overlay,.boss,.boss-bullet,.slash-sweep").forEach(el => el.remove());
 }
 
 function scheduleNextBoss() {
-  nextBossAt = Date.now() + 120000;
+  hathawaySpawnRemainingMs = 120000;
+  hathawaySpawnResumeAt = Date.now();
+  nextBossAt = hathawaySpawnResumeAt + hathawaySpawnRemainingMs;
+}
+
+function pauseHathawaySpawnTimer() {
+  if (!hathawaySpawnResumeAt) return;
+  const elapsed = Date.now() - hathawaySpawnResumeAt;
+  hathawaySpawnRemainingMs = Math.max(0, hathawaySpawnRemainingMs - elapsed);
+  hathawaySpawnResumeAt = 0;
+  nextBossAt = Date.now() + hathawaySpawnRemainingMs;
+}
+
+function resumeHathawaySpawnTimer() {
+  if (hathawaySpawnResumeAt || gameOver) return;
+  hathawaySpawnResumeAt = Date.now();
+  nextBossAt = hathawaySpawnResumeAt + hathawaySpawnRemainingMs;
+}
+
+function hathawaySpawnDue() {
+  if (!hathawaySpawnResumeAt) return false;
+  return Date.now() - hathawaySpawnResumeAt >= hathawaySpawnRemainingMs;
 }
 
 function resetState() {
@@ -149,6 +170,9 @@ function resetState() {
   keys = {};
   scheduleNextBoss();
   bossActive = false;
+  currentBossType = "";
+  evilJackSpawned = false;
+  evilJackQueued = false;
   bossEl = null;
   bossX = 0;
   bossY = 0;
@@ -168,6 +192,8 @@ function resetState() {
   lastFrameAt = performance.now();
   cutsceneFreezeAt = 0;
   kirkShieldFrozenInCutscene = false;
+  playerFrozenUntil = 0;
+  scoreMultiplierUntil = 0;
   stopTheme();
   drawIcePath(Date.now());
   runStartedAt = Date.now();
@@ -200,6 +226,10 @@ function resetState() {
   bossHpText.textContent = "100%";
   bossAmbience.style.display = "none";
   game.classList.remove("boss-mode");
+  bossUI.classList.remove("jack-ui");
+  bossNameEl.textContent = "EVIL HATHAWAY";
+  player.classList.remove("gold-ascended");
+  player.classList.remove("frozen-player");
 }
 
 function restartGame() {
@@ -252,7 +282,8 @@ function updateKirkShieldRing() {
 function addScore(points) {
   const gain = Math.max(0, points | 0);
   if (gain <= 0) return;
-  score += gain;
+  const boosted = Date.now() < scoreMultiplierUntil ? gain * 2 : gain;
+  score += boosted;
   scoreEl.textContent = String(score);
   const top = hudTop || scoreEl.parentElement;
   if (top) {

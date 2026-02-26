@@ -62,6 +62,26 @@ function updateBossBullets(dt) {
       b.remove();
       return;
     }
+    const isJackFreeze = b.classList.contains("jack-freeze");
+    const isParried = b.classList.contains("parried");
+
+    if (isParried && bossActive && bossEl && collide(bossEl, b)) {
+      b.remove();
+      bossHp = Math.max(0, bossHp - 6);
+      updateBossUI();
+      animeDeathBurst(bx + 9, by + 9, game);
+      if (bossHp <= 0) kirkFinisherCutscene();
+      return;
+    }
+
+    if (isJackFreeze && !isParried) {
+      if (collide(player, b)) {
+        b.remove();
+        jackFreezePlayer();
+      }
+      return;
+    }
+
     if (!playerDamageImmune() && collide(player, b) && !consumeShieldHit(b, true)) death();
   });
 }

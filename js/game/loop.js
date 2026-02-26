@@ -40,11 +40,18 @@ function loop() {
     return;
   }
 
-  if (keys["ArrowUp"] || keys["w"]) velY -= acceleration * dt;
-  if (keys["ArrowDown"] || keys["s"]) velY += acceleration * dt;
-  if (keys["ArrowLeft"] || keys["a"]) velX -= acceleration * dt;
-  if (keys["ArrowRight"] || keys["d"]) velX += acceleration * dt;
-
+  const frozenNow = Date.now() < playerFrozenUntil;
+  if (frozenNow) {
+    player.classList.add("frozen-player");
+    velX *= 0.45;
+    velY *= 0.45;
+  } else {
+    player.classList.remove("frozen-player");
+    if (keys["ArrowUp"] || keys["w"]) velY -= acceleration * dt;
+    if (keys["ArrowDown"] || keys["s"]) velY += acceleration * dt;
+    if (keys["ArrowLeft"] || keys["a"]) velX -= acceleration * dt;
+    if (keys["ArrowRight"] || keys["d"]) velX += acceleration * dt;
+  }
   let mag = Math.sqrt(velX * velX + velY * velY);
   if (mag > speed) {
     velX = (velX / mag) * speed;
@@ -81,7 +88,11 @@ function loop() {
   const now = Date.now();
   updateDrakeTrails(now, wrapped);
 
-  if (!bossActive && now >= nextBossAt) {
+  if (!evilJackSpawned && score >= 1000) evilJackQueued = true;
+
+  if (!bossActive && evilJackQueued && !cutsceneActive) {
+    startEvilJackFight();
+  } else if (!bossActive && !cutsceneActive && hathawaySpawnDue()) {
     startBossFight();
   }
 
