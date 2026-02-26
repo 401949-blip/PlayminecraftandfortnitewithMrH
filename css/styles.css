@@ -606,6 +606,21 @@ body {
   box-shadow: 0 0 26px rgba(52, 150, 255, 0.44);
 }
 
+#bossUI.jack-ui #bossTop {
+  justify-content: center;
+  position: relative;
+}
+
+#bossUI.jack-ui #bossName {
+  text-align: center;
+}
+
+#bossUI.jack-ui #bossHpText {
+  position: absolute;
+  right: 0;
+  top: 0;
+}
+
 #bossUI.jack-ui #bossBar {
   height: 16px;
 }
