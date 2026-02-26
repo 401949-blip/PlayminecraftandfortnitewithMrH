@@ -604,21 +604,28 @@ body {
   width: min(720px, 94vw);
   border-color: rgba(113, 188, 255, 0.62);
   box-shadow: 0 0 26px rgba(52, 150, 255, 0.44);
+  padding-bottom: 32px;
 }
 
 #bossUI.jack-ui #bossTop {
-  justify-content: center;
+  justify-content: flex-end;
   position: relative;
 }
 
 #bossUI.jack-ui #bossName {
+  position: absolute;
+  left: 50%;
+  top: 32px;
+  transform: translate(-50%, 0);
   text-align: center;
+  white-space: nowrap;
 }
 
 #bossUI.jack-ui #bossHpText {
   position: absolute;
   right: 0;
   top: 0;
+  transform: translateY(0);
 }
 
 #bossUI.jack-ui #bossBar {
