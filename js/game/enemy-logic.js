@@ -69,7 +69,7 @@ function updateBossBullets(dt) {
       b.remove();
       bossHp = Math.max(0, bossHp - 6);
       updateBossUI();
-      animeDeathBurst(bx + 9, by + 9, game);
+      iceBreakBurst(bx + 9, by + 9, game);
       if (bossHp <= 0) kirkFinisherCutscene();
       return;
     }
@@ -146,8 +146,10 @@ function updateEnemies(now, dt) {
     const frozenUntil = parseInt(e.dataset.frozenUntil || "0", 10);
     if (frozenUntil > now) {
       if (enemyTouchesIcePath(e)) {
-        const r = e.getBoundingClientRect();
-        animeDeathBurst(r.left + r.width / 2, r.top + r.height / 2, game);
+        if (enemies.length < 22 || Math.random() < 0.28) {
+          const r = e.getBoundingClientRect();
+          iceBreakBurst(r.left + r.width / 2, r.top + r.height / 2, game);
+        }
         e.remove();
         sfx("shatter");
         addScore(5);

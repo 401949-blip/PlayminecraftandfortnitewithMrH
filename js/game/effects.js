@@ -17,33 +17,38 @@ function collide(a, b) {
 
 function animeDeathBurst(xPos, yPos, parent) {
   const host = parent || game;
-  const ring = document.createElement("div");
-  ring.style.position = "absolute";
-  ring.style.left = xPos + "px";
-  ring.style.top = yPos + "px";
-  ring.style.width = "20px";
-  ring.style.height = "20px";
-  ring.style.border = "2px solid rgba(255,145,191,0.95)";
-  ring.style.borderRadius = "50%";
-  ring.style.transform = "translate(-50%,-50%) scale(0.3)";
-  ring.style.opacity = "1";
-  ring.style.pointerEvents = "none";
-  ring.style.zIndex = 10020;
-  host.appendChild(ring);
+  const enemyCount = document.querySelectorAll(".enemy").length;
+  const heavyLoad = enemyCount > 24 || cutsceneActive;
+  if (!heavyLoad) {
+    const ring = document.createElement("div");
+    ring.style.position = "absolute";
+    ring.style.left = xPos + "px";
+    ring.style.top = yPos + "px";
+    ring.style.width = "20px";
+    ring.style.height = "20px";
+    ring.style.border = "2px solid rgba(255,145,191,0.95)";
+    ring.style.borderRadius = "50%";
+    ring.style.transform = "translate(-50%,-50%) scale(0.3)";
+    ring.style.opacity = "1";
+    ring.style.pointerEvents = "none";
+    ring.style.zIndex = 10020;
+    host.appendChild(ring);
 
-  let ringScale = 0.3;
-  let ringOpacity = 1;
-  function animateRing() {
-    ringScale += 0.18;
-    ringOpacity -= 0.045;
-    ring.style.transform = `translate(-50%,-50%) scale(${ringScale})`;
-    ring.style.opacity = ringOpacity;
-    if (ringOpacity > 0) requestAnimationFrame(animateRing);
-    else ring.remove();
+    let ringScale = 0.3;
+    let ringOpacity = 1;
+    function animateRing() {
+      ringScale += 0.18;
+      ringOpacity -= 0.045;
+      ring.style.transform = `translate(-50%,-50%) scale(${ringScale})`;
+      ring.style.opacity = ringOpacity;
+      if (ringOpacity > 0) requestAnimationFrame(animateRing);
+      else ring.remove();
+    }
+    animateRing();
   }
-  animateRing();
 
-  for (let i = 0; i < FX_SETTINGS.deathBurstParticles; i++) {
+  const particleCount = heavyLoad ? 2 : FX_SETTINGS.deathBurstParticles;
+  for (let i = 0; i < particleCount; i++) {
     const particle = document.createElement("div");
     particle.style.position = "absolute";
     particle.style.left = xPos + "px";
@@ -72,6 +77,71 @@ function animeDeathBurst(xPos, yPos, parent) {
       else particle.remove();
     }
     animateParticle();
+  }
+}
+
+function iceBreakBurst(xPos, yPos, parent) {
+  const host = parent || game;
+  const ring = document.createElement("div");
+  ring.style.position = "absolute";
+  ring.style.left = xPos + "px";
+  ring.style.top = yPos + "px";
+  ring.style.width = "18px";
+  ring.style.height = "18px";
+  ring.style.border = "2px solid rgba(134, 214, 255, 0.96)";
+  ring.style.borderRadius = "50%";
+  ring.style.transform = "translate(-50%,-50%) scale(0.32)";
+  ring.style.opacity = "0.95";
+  ring.style.pointerEvents = "none";
+  ring.style.zIndex = 10035;
+  host.appendChild(ring);
+  let scale = 0.32;
+  let alpha = 0.95;
+  function stepRing() {
+    scale += 0.22;
+    alpha -= 0.06;
+    ring.style.transform = `translate(-50%,-50%) scale(${scale})`;
+    ring.style.opacity = alpha;
+    if (alpha > 0) requestAnimationFrame(stepRing);
+    else ring.remove();
+  }
+  stepRing();
+
+  const shardCount = cutsceneActive ? 6 : 10;
+  for (let i = 0; i < shardCount; i++) {
+    const shard = document.createElement("div");
+    const w = 3 + Math.random() * 5;
+    const h = 7 + Math.random() * 9;
+    shard.style.position = "absolute";
+    shard.style.left = xPos + "px";
+    shard.style.top = yPos + "px";
+    shard.style.width = w + "px";
+    shard.style.height = h + "px";
+    shard.style.borderRadius = "2px";
+    shard.style.background = i % 3 ? "#a7e7ff" : "#e6f8ff";
+    shard.style.boxShadow = "0 0 12px rgba(120,206,255,0.96)";
+    shard.style.pointerEvents = "none";
+    shard.style.zIndex = 10036;
+    host.appendChild(shard);
+
+    const ang = (Math.PI * 2 * i) / shardCount + (Math.random() - 0.5) * 0.35;
+    const vel = 3.4 + Math.random() * 4.2;
+    const spin = (Math.random() - 0.5) * 22;
+    let px = 0;
+    let py = 0;
+    let rot = 0;
+    let life = 1;
+    function stepShard() {
+      px += Math.cos(ang) * vel;
+      py += Math.sin(ang) * vel;
+      rot += spin;
+      life -= 0.055;
+      shard.style.transform = `translate(${px}px,${py}px) rotate(${rot}deg)`;
+      shard.style.opacity = life;
+      if (life > 0) requestAnimationFrame(stepShard);
+      else shard.remove();
+    }
+    stepShard();
   }
 }
 
@@ -193,6 +263,7 @@ function death() {
   pendingBackgroundReroll = true;
   cutsceneActive = false;
   invincible = false;
+  game.classList.remove("cutscene-mode");
   const survivedMs = Math.max(0, Date.now() - runStartedAt);
   game.classList.add("death-mode");
   stopTheme();

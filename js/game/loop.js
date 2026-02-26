@@ -36,9 +36,11 @@ function loop() {
   updateKirkShieldRing();
 
   if (cutsceneActive) {
+    game.classList.add("cutscene-mode");
     scheduleNextLoop();
     return;
   }
+  game.classList.remove("cutscene-mode");
 
   const frozenNow = Date.now() < playerFrozenUntil;
   if (frozenNow) {

@@ -59,7 +59,7 @@ function beginBossPhase(type) {
   document.querySelectorAll(".orb").forEach(el => el.remove());
 
   if (type === "jack") {
-    bossMaxHp = 58;
+    bossMaxHp = 580;
     bossEl = document.createElement("img");
     bossEl.src = "../assets/images/jackboss.jpeg";
     bossEl.onerror = () => { bossEl.src = "../assets/images/hathaway.jpeg"; };
@@ -146,7 +146,36 @@ function showSpawnAnnouncement(text) {
     warning.style.opacity = "0";
     warning.style.transform = "scale(1.05)";
   }, 2820);
-  cutsceneTimeout(() => warning.remove(), 3200);
+  cutsceneTimeout(() => warning.remove(), 3300);
+
+  const help = document.createElement("div");
+  help.style.position = "absolute";
+  help.style.inset = "0";
+  help.style.display = "flex";
+  help.style.alignItems = "center";
+  help.style.justifyContent = "center";
+  help.style.zIndex = "15501";
+  help.style.fontFamily = "\"GameFont\", \"Segoe UI\", Tahoma, sans-serif";
+  help.style.fontSize = "clamp(22px, 6.8vw, 86px)";
+  help.style.letterSpacing = "4px";
+  help.style.textAlign = "center";
+  help.style.color = "#63b6ff";
+  help.style.textShadow = "0 0 26px rgba(67, 164, 255, 0.96), 0 0 68px rgba(12, 66, 135, 0.9)";
+  help.style.opacity = "0";
+  help.style.transform = "scale(0.9)";
+  help.style.transition = "opacity 420ms ease, transform 420ms ease";
+  help.textContent = "PRESS SPACE TO PARRY HIS FREEZE ATTACKS";
+  game.appendChild(help);
+
+  cutsceneTimeout(() => {
+    help.style.opacity = "1";
+    help.style.transform = "scale(1)";
+  }, 3440);
+  cutsceneTimeout(() => {
+    help.style.opacity = "0";
+    help.style.transform = "scale(1.03)";
+  }, 6280);
+  cutsceneTimeout(() => help.remove(), 6820);
 }
 
 function startBossIntro() {
@@ -270,7 +299,7 @@ function startJackIntro() {
   glider.style.transform = "translateX(-50%)";
   glider.style.borderRadius = "18px";
   glider.style.filter = "drop-shadow(0 0 28px rgba(170,220,255,0.9))";
-  glider.style.transition = "top 1700ms cubic-bezier(.2,.86,.2,1), transform 1700ms cubic-bezier(.2,.86,.2,1)";
+  glider.style.transition = "top 2700ms cubic-bezier(.2,.86,.2,1), transform 2700ms cubic-bezier(.2,.86,.2,1)";
   overlay.appendChild(glider);
 
   const jack = document.createElement("img");
@@ -285,7 +314,7 @@ function startJackIntro() {
   jack.style.transform = "translateX(-50%)";
   jack.style.borderRadius = "18px";
   jack.style.filter = "drop-shadow(0 0 28px rgba(70,170,255,0.9))";
-  jack.style.transition = "top 1700ms cubic-bezier(.2,.86,.2,1), transform 1700ms cubic-bezier(.2,.86,.2,1)";
+  jack.style.transition = "top 2700ms cubic-bezier(.2,.86,.2,1), transform 2700ms cubic-bezier(.2,.86,.2,1)";
   overlay.appendChild(jack);
 
   const shadow = document.createElement("div");
@@ -299,14 +328,14 @@ function startJackIntro() {
   shadow.style.background = "rgba(0,0,0,0.52)";
   shadow.style.filter = "blur(10px)";
   shadow.style.opacity = "0";
-  shadow.style.transition = "transform 1700ms cubic-bezier(.2,.86,.2,1), opacity 1700ms ease";
+  shadow.style.transition = "transform 2700ms cubic-bezier(.2,.86,.2,1), opacity 2700ms ease";
   overlay.appendChild(shadow);
 
   cutsceneTimeout(() => { overlay.style.opacity = "1"; }, 20);
   cutsceneTimeout(() => {
     tomato.style.opacity = "1";
     tomato.style.transform = "scale(1)";
-  }, 330);
+  }, 760);
   cutsceneTimeout(() => {
     glider.style.top = "50%";
     glider.style.transform = "translate(-50%, -65%)";
@@ -314,22 +343,22 @@ function startJackIntro() {
     jack.style.transform = "translate(-50%, -56%)";
     shadow.style.opacity = "1";
     shadow.style.transform = "translateX(-50%) scale(1)";
-  }, 600);
+  }, 1500);
   cutsceneTimeout(() => {
     glider.style.transform = "translate(-50%, -48%)";
     jack.style.transform = "translate(-50%, -38%)";
     glider.style.opacity = "0.18";
-  }, 2180);
+  }, 4550);
   cutsceneTimeout(() => {
     overlay.style.opacity = "0";
-  }, 2860);
+  }, 5750);
   cutsceneTimeout(() => {
     overlay.remove();
     beginBossPhase("jack");
     cutsceneActive = false;
     invincible = false;
     showSpawnAnnouncement("EVIL JACK HAS SPAWNED");
-  }, 3300);
+  }, 6380);
 }
 
 function startBossFight() {
@@ -439,7 +468,7 @@ function kirkFinisherCutscene() {
   game.appendChild(overlay);
 
   const label = document.createElement("div");
-  label.textContent = "CHARLIE KIRK // HAMMER OF JUDGMENT";
+  label.textContent = "CHARLIE KIRK // LASER OF JUSTICE";
   label.style.position = "absolute";
   label.style.top = "14%";
   label.style.left = "50%";
@@ -464,31 +493,36 @@ function kirkFinisherCutscene() {
   kirk.style.transition = "left 700ms cubic-bezier(.16,.84,.22,1)";
   overlay.appendChild(kirk);
 
-  const hammer = document.createElement("img");
-  hammer.src = "../assets/images/hammer.jpeg";
-  hammer.onerror = () => {
-    hammer.style.background = "linear-gradient(180deg, #5e4a35, #2f2418)";
-  };
-  hammer.style.position = "absolute";
-  hammer.style.left = (rect.left + rect.width / 2 - 120) + "px";
-  hammer.style.top = (rect.top - 320) + "px";
-  hammer.style.width = "300px";
-  hammer.style.height = "520px";
-  hammer.style.objectFit = "contain";
-  hammer.style.transformOrigin = "120px 420px";
-  hammer.style.transform = "rotate(-95deg)";
-  hammer.style.borderRadius = "8px";
-  hammer.style.boxShadow = "0 0 34px rgba(0,0,0,0.82)";
-  hammer.style.transition = "transform 260ms cubic-bezier(.2,.8,.2,1)";
-  overlay.appendChild(hammer);
+  const laser = document.createElement("div");
+  const laserStartX = rect.left - 36;
+  const laserStartY = rect.top + rect.height / 2;
+  const laserLen = window.innerWidth - laserStartX + 80;
+  laser.style.position = "absolute";
+  laser.style.left = laserStartX + "px";
+  laser.style.top = laserStartY + "px";
+  laser.style.width = laserLen + "px";
+  laser.style.height = "22px";
+  laser.style.transformOrigin = "0 50%";
+  laser.style.transform = "translateY(-50%) scaleX(0.02)";
+  laser.style.borderRadius = "999px";
+  laser.style.background = "linear-gradient(90deg, rgba(255,255,255,0.95), #ff5a5a 12%, #ff0000 42%, #9f0000 100%)";
+  laser.style.boxShadow = "0 0 26px rgba(255,0,0,0.95), 0 0 56px rgba(190,0,0,0.95)";
+  laser.style.transition = "transform 300ms cubic-bezier(.15,.8,.2,1), opacity 220ms ease";
+  laser.style.opacity = "0";
+  overlay.appendChild(laser);
 
   cutsceneTimeout(() => { overlay.style.opacity = "1"; }, 20);
   cutsceneTimeout(() => { kirk.style.left = (rect.left - 190) + "px"; }, 250);
   cutsceneTimeout(() => {
-    hammer.style.transform = "rotate(22deg)";
+    laser.style.opacity = "1";
+    laser.style.transform = "translateY(-50%) scaleX(1)";
     sfx("slash");
     animeDeathBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, overlay);
+    iceBreakBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, overlay);
   }, 980);
+  cutsceneTimeout(() => {
+    laser.style.opacity = "0";
+  }, 1320);
   cutsceneTimeout(() => { overlay.style.opacity = "0"; }, 1650);
   cutsceneTimeout(() => {
     overlay.remove();
@@ -584,6 +618,38 @@ function jackFinisherCutscene() {
     return beam;
   }
 
+  function explodeAndKillJackMinions() {
+    const blast = document.createElement("div");
+    blast.style.position = "absolute";
+    blast.style.left = centerX + "px";
+    blast.style.top = centerY + "px";
+    blast.style.width = "44px";
+    blast.style.height = "44px";
+    blast.style.borderRadius = "50%";
+    blast.style.transform = "translate(-50%,-50%) scale(0.2)";
+    blast.style.background = "radial-gradient(circle, rgba(255,255,255,0.95) 0%, rgba(255,204,92,0.96) 26%, rgba(255,86,38,0.92) 56%, rgba(255,22,0,0.65) 100%)";
+    blast.style.boxShadow = "0 0 26px rgba(255,116,35,0.95), 0 0 70px rgba(255,52,0,0.88)";
+    blast.style.zIndex = "16500";
+    blast.style.opacity = "1";
+    blast.style.transition = "transform 520ms cubic-bezier(.12,.8,.2,1), opacity 520ms ease";
+    overlay.appendChild(blast);
+    requestAnimationFrame(() => {
+      blast.style.transform = "translate(-50%,-50%) scale(13)";
+      blast.style.opacity = "0";
+    });
+    cutsceneTimeout(() => blast.remove(), 620);
+
+    const minions = Array.from(document.querySelectorAll(".enemy.jack-minion"));
+    minions.forEach((enemy, idx) => {
+      cutsceneTimeout(() => {
+        if (!enemy.isConnected) return;
+        const er = enemy.getBoundingClientRect();
+        animeDeathBurst(er.left + er.width / 2, er.top + er.height / 2, overlay);
+        enemy.remove();
+      }, idx * 14);
+    });
+  }
+
   cutsceneTimeout(() => { overlay.style.opacity = "1"; }, 20);
   cutsceneTimeout(() => {
     nodes.forEach(node => {
@@ -618,18 +684,46 @@ function jackFinisherCutscene() {
     requestAnimationFrame(() => { flash.style.opacity = "0"; });
     cutsceneTimeout(() => flash.remove(), 300);
   }, 1680);
-  cutsceneTimeout(() => { overlay.style.opacity = "0"; }, 2180);
+  cutsceneTimeout(() => { explodeAndKillJackMinions(); }, 1770);
+  cutsceneTimeout(() => { overlay.style.opacity = "0"; }, 2330);
   cutsceneTimeout(() => {
     overlay.remove();
     cutsceneActive = false;
     invincible = false;
     endBossFight(true);
-  }, 2620);
+  }, 2800);
 }
 
 function activateJackVictoryBuff() {
   player.classList.add("gold-ascended");
   scoreMultiplierUntil = Date.now() + 120000;
+  const banner = document.createElement("div");
+  banner.style.position = "absolute";
+  banner.style.inset = "0";
+  banner.style.display = "flex";
+  banner.style.alignItems = "center";
+  banner.style.justifyContent = "center";
+  banner.style.zIndex = "15620";
+  banner.style.fontFamily = "\"GameFont\", \"Segoe UI\", Tahoma, sans-serif";
+  banner.style.fontSize = "clamp(26px, 8vw, 104px)";
+  banner.style.letterSpacing = "5px";
+  banner.style.textAlign = "center";
+  banner.style.color = "#ffd95b";
+  banner.style.textShadow = "0 0 20px rgba(255, 214, 101, 0.96), 0 0 58px rgba(214, 140, 0, 0.92)";
+  banner.style.opacity = "0";
+  banner.style.transform = "scale(0.88)";
+  banner.style.transition = "opacity 320ms ease, transform 320ms ease";
+  banner.textContent = "DOUBLE SCORE FOR TWO MINUTES!";
+  game.appendChild(banner);
+  requestAnimationFrame(() => {
+    banner.style.opacity = "1";
+    banner.style.transform = "scale(1)";
+  });
+  cutsceneTimeout(() => {
+    banner.style.opacity = "0";
+    banner.style.transform = "scale(1.03)";
+  }, 2550);
+  cutsceneTimeout(() => banner.remove(), 3020);
   window.setTimeout(() => {
     if (Date.now() >= scoreMultiplierUntil) {
       player.classList.remove("gold-ascended");
