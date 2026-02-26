@@ -154,6 +154,7 @@ export class GameApp {
   }
 
   finalizeDeathState() {
+    this.cutsceneDirector.cancelAll();
     if (this.store.bossActive) {
       this.bossSystem.endBossFight(false);
     }
@@ -173,6 +174,8 @@ export class GameApp {
     this.frameLoop.stop();
     this.spawnSystem.clearTimers();
     this.scheduler.cancelAll();
+    this.cutsceneDirector.cancelAll();
+    this.cutsceneDirector.endCutscene();
     this.spawnSystem.clearDynamicObjects();
 
     this.store.resetRun();
@@ -266,7 +269,9 @@ export class GameApp {
       this.phaseMachine.transition(PHASES.CUTSCENE);
       return;
     }
-    if (this.phaseMachine.is(PHASES.CUTSCENE) && !s.bossActive) {
+    if (this.phaseMachine.is(PHASES.CUTSCENE) && s.bossActive) {
+      this.phaseMachine.transition(PHASES.BOSS);
+    } else if (this.phaseMachine.is(PHASES.CUTSCENE) && !s.bossActive) {
       this.phaseMachine.transition(PHASES.RUNNING);
     }
 

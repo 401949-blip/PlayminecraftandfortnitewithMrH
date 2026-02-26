@@ -1,7 +1,7 @@
-import { runBoNixCutscene } from "../gameplay/powerups/cutscenes/boNixCutscene.js";
-import { runDrakeCutscene } from "../gameplay/powerups/cutscenes/drakeCutscene.js";
-import { runDevitoCutscene } from "../gameplay/powerups/cutscenes/devitoCutscene.js";
-import { runKirkCutscene } from "../gameplay/powerups/cutscenes/kirkCutscene.js";
+import { runBoNixCutscene } from "../gameplay/powerups/cutscenes/boNixCutscene.js?v=20260226c";
+import { runDrakeCutscene } from "../gameplay/powerups/cutscenes/drakeCutscene.js?v=20260226c";
+import { runDevitoCutscene } from "../gameplay/powerups/cutscenes/devitoCutscene.js?v=20260226c";
+import { runKirkCutscene } from "../gameplay/powerups/cutscenes/kirkCutscene.js?v=20260226c";
 import { createPowerupEffects } from "../gameplay/powerups/effects/index.js";
 
 export class PowerupSystem {

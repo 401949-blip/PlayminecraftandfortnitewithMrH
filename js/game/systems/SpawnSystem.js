@@ -1,5 +1,6 @@
 import { CONSTANTS } from "../config/constants.js";
 import { POWERUP_REGISTRY } from "../gameplay/powerups/PowerupRegistry.js";
+import { AssetCatalog } from "../services/AssetCatalog.js";
 
 export class SpawnSystem {
   constructor({ store, refs, effects, scheduler }) {
@@ -227,6 +228,11 @@ export class SpawnSystem {
     } else if (cls === "orb") {
       d.classList.add("spawn-in");
       setTimeout(() => d.classList.remove("spawn-in"), 300);
+    } else if (cls === "power" || cls === "kirk" || cls === "bonix" || cls === "drake") {
+      const powerupSrc = AssetCatalog.powerups[cls === "power" ? "devito" : cls];
+      if (powerupSrc) {
+        d.style.backgroundImage = `linear-gradient(rgba(9, 10, 15, 0.08), rgba(9, 10, 15, 0.08)), url('${powerupSrc}')`;
+      }
     }
 
     game.appendChild(d);

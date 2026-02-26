@@ -247,8 +247,55 @@ export class BossSystem {
     overlay.style.overflow = "hidden";
     this.refs.game.appendChild(overlay);
 
+    const label = document.createElement("div");
+    label.textContent = "CHARLIE KIRK // HAMMER OF JUDGMENT";
+    label.style.position = "absolute";
+    label.style.top = "14%";
+    label.style.left = "50%";
+    label.style.transform = "translate(-50%, -50%)";
+    label.style.fontFamily = "\"GameFont\", \"Segoe UI\", Tahoma, sans-serif";
+    label.style.fontSize = "clamp(18px,2.8vw,30px)";
+    label.style.letterSpacing = "3px";
+    label.style.color = "#c9ffe0";
+    label.style.textShadow = "0 0 22px rgba(96,255,178,0.85)";
+    overlay.appendChild(label);
+
+    const kirk = document.createElement("img");
+    kirk.src = "../assets/images/kirk.jpeg";
+    kirk.style.position = "absolute";
+    kirk.style.left = "-320px";
+    kirk.style.top = Math.max(40, rect.top - 40) + "px";
+    kirk.style.width = "300px";
+    kirk.style.height = "300px";
+    kirk.style.objectFit = "cover";
+    kirk.style.borderRadius = "14px";
+    kirk.style.filter = "drop-shadow(0 0 28px rgba(150,255,200,0.95))";
+    kirk.style.transition = "left 700ms cubic-bezier(.16,.84,.22,1)";
+    overlay.appendChild(kirk);
+
+    const hammer = document.createElement("img");
+    hammer.src = "../assets/images/hammer.jpeg";
+    hammer.onerror = () => {
+      hammer.style.background = "linear-gradient(180deg, #5e4a35, #2f2418)";
+    };
+    hammer.style.position = "absolute";
+    hammer.style.left = (rect.left + rect.width / 2 - 120) + "px";
+    hammer.style.top = (rect.top - 320) + "px";
+    hammer.style.width = "300px";
+    hammer.style.height = "520px";
+    hammer.style.objectFit = "contain";
+    hammer.style.transformOrigin = "120px 420px";
+    hammer.style.transform = "rotate(-95deg)";
+    hammer.style.borderRadius = "8px";
+    hammer.style.boxShadow = "0 0 34px rgba(0,0,0,0.82)";
+    hammer.style.transition = "transform 260ms cubic-bezier(.2,.8,.2,1)";
+    overlay.appendChild(hammer);
+
     this.cutsceneDirector.timeout(() => { overlay.style.opacity = "1"; }, 20);
+    this.cutsceneDirector.timeout(() => { kirk.style.left = (rect.left - 190) + "px"; }, 250);
     this.cutsceneDirector.timeout(() => {
+      hammer.style.transform = "rotate(22deg)";
+      this.audio.sfx("slash");
       this.effects.animeDeathBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, overlay);
     }, 980);
     this.cutsceneDirector.timeout(() => { overlay.style.opacity = "0"; }, 1650);
