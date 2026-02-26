@@ -89,6 +89,15 @@ function updateBossBullets(dt) {
 function updateEnemies(now, dt) {
   const enemies = Array.from(document.querySelectorAll(".enemy"));
   const powerups = Array.from(document.querySelectorAll(".power,.kirk,.bonix,.drake"));
+  const heavyLoad = enemies.length > 16;
+  const powerupCenters = powerups.map(p => {
+    const pw = p.getBoundingClientRect().width || 32;
+    const ph = p.getBoundingClientRect().height || 32;
+    return {
+      x: parseFloat(p.style.left) + pw / 2,
+      y: parseFloat(p.style.top) + ph / 2
+    };
+  });
 
   function enemyCanDamage(el) {
     const safeUntil = parseInt(el.dataset.spawnSafeUntil || "0", 10);
@@ -100,6 +109,7 @@ function updateEnemies(now, dt) {
   }
 
   function separationVector(el, ex, ey) {
+    if (heavyLoad) return { x: 0, y: 0 };
     let sepX = 0;
     let sepY = 0;
     const desired = 52;
@@ -121,15 +131,14 @@ function updateEnemies(now, dt) {
   }
 
   function powerupAvoidVector(ex, ey) {
+    if (heavyLoad || powerupCenters.length === 0) return { x: 0, y: 0 };
     let ax = 0;
     let ay = 0;
     const avoidDist = POWERUP_SAFE_RADIUS;
-    for (let i = 0; i < powerups.length; i++) {
-      const p = powerups[i];
-      const pw = p.getBoundingClientRect().width || 32;
-      const ph = p.getBoundingClientRect().height || 32;
-      const px = parseFloat(p.style.left) + pw / 2;
-      const py = parseFloat(p.style.top) + ph / 2;
+    for (let i = 0; i < powerupCenters.length; i++) {
+      const p = powerupCenters[i];
+      const px = p.x;
+      const py = p.y;
       const dx = ex + 16 - px;
       const dy = ey + 16 - py;
       const distSq = dx * dx + dy * dy;

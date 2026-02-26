@@ -88,6 +88,9 @@ function loop() {
   player.style.top = y + "px";
 
   const now = Date.now();
+  const enemyCount = document.querySelectorAll(".enemy").length;
+  if (enemyCount > 14 || bossActive) game.classList.add("perf-lite");
+  else game.classList.remove("perf-lite");
   updateDrakeTrails(now, wrapped);
 
   if (!evilJackSpawned && score >= 1000) evilJackQueued = true;

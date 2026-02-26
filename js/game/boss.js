@@ -59,7 +59,7 @@ function beginBossPhase(type) {
   document.querySelectorAll(".orb").forEach(el => el.remove());
 
   if (type === "jack") {
-    bossMaxHp = 580;
+    bossMaxHp = 290;
     bossEl = document.createElement("img");
     bossEl.src = "../assets/images/jackboss.jpeg";
     bossEl.onerror = () => { bossEl.src = "../assets/images/hathaway.jpeg"; };
@@ -95,25 +95,25 @@ function beginBossPhase(type) {
   game.classList.add("boss-mode");
   updateBossUI();
 
-  for (let i = 0; i < 6; i++) spawn("orb");
+  for (let i = 0; i < (type === "jack" ? 3 : 4); i++) spawn("orb");
 
   bossMinionTimer = setInterval(() => {
     if (!bossActive || gameOver || paused || menuOpen) return;
     if (canSpawnEnemy()) spawnEnemyNearBoss();
-    if (Math.random() < 0.55 && canSpawnEnemy()) spawnEnemyNearBoss();
-  }, type === "jack" ? 2600 : 3300);
+    if (Math.random() < (type === "jack" ? 0.22 : 0.28) && canSpawnEnemy()) spawnEnemyNearBoss();
+  }, type === "jack" ? 3200 : 3800);
 
   bossBulletTimer = setInterval(() => {
     if (!bossActive || gameOver || paused || menuOpen) return;
     spawnBossBullet();
-    if (Math.random() < (type === "jack" ? 0.42 : 0.35)) {
-      cutsceneTimeout(() => spawnBossBullet(), 140);
+    if (Math.random() < (type === "jack" ? 0.24 : 0.2)) {
+      cutsceneTimeout(() => spawnBossBullet(), 210);
     }
-  }, type === "jack" ? 1080 : 1350);
+  }, type === "jack" ? 1250 : 1500);
 
   bossOrbTimer = setInterval(() => {
     if (!bossActive || gameOver || paused || menuOpen) return;
-    if (document.querySelectorAll(".orb").length < 9) spawn("orb");
+    if (document.querySelectorAll(".orb").length < (type === "jack" ? 4 : 5)) spawn("orb");
   }, 900);
 }
 
@@ -196,12 +196,15 @@ function startBossIntro() {
   const warning = document.createElement("div");
   warning.textContent = "EVIL HATHAWAY HAS ARRIVED";
   warning.style.position = "absolute";
-  warning.style.top = "18%";
+  warning.style.top = "50%";
   warning.style.left = "50%";
-  warning.style.transform = "translate(-50%, -50%) scale(0.8)";
+  warning.style.width = "100%";
+  warning.style.textAlign = "center";
+  warning.style.whiteSpace = "nowrap";
+  warning.style.transform = "translate(-50%, -50%) scale(0.92)";
   warning.style.fontFamily = "\"GameFont\", \"Segoe UI\", Tahoma, sans-serif";
-  warning.style.fontSize = "clamp(20px,4vw,42px)";
-  warning.style.letterSpacing = "4px";
+  warning.style.fontSize = "clamp(16px,5.2vw,64px)";
+  warning.style.letterSpacing = "6px";
   warning.style.color = "#ffd5d5";
   warning.style.textShadow = "0 0 24px rgba(255, 75, 75, 0.9)";
   warning.style.opacity = "0";
@@ -770,6 +773,10 @@ function endBossFight(victory) {
     if (endedBossType === "jack") {
       resumeHathawaySpawnTimer();
     } else {
+      if (victory) {
+        document.querySelectorAll(".orb").forEach(el => el.remove());
+        spawn("orb");
+      }
       scheduleNextBoss();
     }
   }

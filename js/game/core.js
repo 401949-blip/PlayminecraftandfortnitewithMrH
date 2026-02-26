@@ -227,6 +227,7 @@ function resetState() {
   bossAmbience.style.display = "none";
   game.classList.remove("boss-mode");
   game.classList.remove("cutscene-mode");
+  game.classList.remove("perf-lite");
   bossUI.classList.remove("jack-ui");
   bossNameEl.textContent = "EVIL HATHAWAY";
   player.classList.remove("gold-ascended");
