@@ -36,10 +36,6 @@ const bossHpText = document.getElementById("bossHpText");
 const bossNameEl = document.getElementById("bossName");
 const bossAmbience = document.getElementById("bossAmbience");
 const hudTop = document.getElementById("hudTop");
-const leaderboardOverlay = document.getElementById("leaderboardOverlay");
-const leaderboardCloseBtn = document.getElementById("leaderboardCloseBtn");
-const leaderboardListEl = document.getElementById("leaderboardList");
-const leaderboardMenuBtn = document.getElementById("leaderboardMenuBtn");
 
 let x = window.innerWidth / 2;
 let y = window.innerHeight / 2;
@@ -105,11 +101,9 @@ let playerFrozenUntil = 0;
 let scoreMultiplierUntil = 0;
 let devitoModeActive = false;
 let devitoRunNoRecord = false;
-let leaderboardEntries = [];
 let audioCtx = null;
 let audioReady = false;
 let activeThemeStop = null;
-const LEADERBOARD_KEY = "website_game_global_leaderboard_v1";
 const FX_SETTINGS = {
   deathBurstParticles: 8,
   devitoPetals: 52,

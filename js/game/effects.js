@@ -303,7 +303,7 @@ function death() {
   }
 
   setTimeout(() => {
-    const beatHighScore = score > highScore;
+    const beatHighScore = !devitoRunNoRecord && score > highScore;
     if (beatHighScore) {
       highScore = score;
       saveHighScoreToCookie();

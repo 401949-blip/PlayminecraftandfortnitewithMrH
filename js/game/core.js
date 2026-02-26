@@ -87,6 +87,23 @@ function updateHighScoreUI() {
   if (deathHighScoreValueEl) deathHighScoreValueEl.textContent = String(highScore);
 }
 
+function setDevitoMode(active) {
+  devitoModeActive = !!active;
+  if (devitoModeActive) {
+    devitoRunNoRecord = true;
+    game.classList.add("devito-mode");
+    scoreEl.textContent = "DEVITO";
+    timeEl.textContent = "DEVITO";
+    player.src = "../assets/images/devito.jpeg";
+    if (bossEl) bossEl.src = "../assets/images/devito.jpeg";
+  } else {
+    game.classList.remove("devito-mode");
+    scoreEl.textContent = String(score);
+    timeEl.textContent = formatTime(Date.now() - runStartedAt);
+    player.src = "../assets/images/hathaway.jpeg";
+  }
+}
+
 function startTimers() {
   enemyTimer = setInterval(() => {
     if (!gameOver && !cutsceneActive && !paused && !menuOpen && canSpawnEnemy()) spawn("enemy");
@@ -194,6 +211,7 @@ function resetState() {
   kirkShieldFrozenInCutscene = false;
   playerFrozenUntil = 0;
   scoreMultiplierUntil = 0;
+  devitoRunNoRecord = false;
   stopTheme();
   drawIcePath(Date.now());
   runStartedAt = Date.now();
@@ -232,6 +250,7 @@ function resetState() {
   bossNameEl.textContent = "EVIL HATHAWAY";
   player.classList.remove("gold-ascended");
   player.classList.remove("frozen-player");
+  setDevitoMode(false);
 }
 
 function restartGame() {
@@ -286,7 +305,7 @@ function addScore(points) {
   if (gain <= 0) return;
   const boosted = Date.now() < scoreMultiplierUntil ? gain * 2 : gain;
   score += boosted;
-  scoreEl.textContent = String(score);
+  scoreEl.textContent = devitoModeActive ? "DEVITO" : String(score);
   const top = hudTop || scoreEl.parentElement;
   if (top) {
     top.classList.remove("score-pop");

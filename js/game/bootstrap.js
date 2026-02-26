@@ -114,21 +114,8 @@ function startGame() {
 
 document.addEventListener("keydown", e => {
   ensureAudio();
-  if (e.key === "y" || e.key === "Y") {
-    e.preventDefault();
-    if (leaderboardOverlay && !leaderboardOverlay.classList.contains("hidden")) {
-      hideLeaderboard();
-    } else {
-      showLeaderboard();
-    }
-    return;
-  }
   if (e.key === "Escape") {
     e.preventDefault();
-    if (leaderboardOverlay && !leaderboardOverlay.classList.contains("hidden")) {
-      hideLeaderboard();
-      return;
-    }
     if (!menuOpen && gameStarted && !gameOver) setPaused(!paused);
     return;
   }
@@ -153,18 +140,10 @@ document.addEventListener("pointerdown", ensureAudio, { once: true });
 startGameBtn.addEventListener("click", startGame);
 resumeGameBtn.addEventListener("click", () => setPaused(false));
 exitMenuBtn.addEventListener("click", exitToMainMenu);
-if (leaderboardMenuBtn) {
-  leaderboardMenuBtn.addEventListener("click", () => showLeaderboard());
-}
-if (leaderboardCloseBtn) {
-  leaderboardCloseBtn.addEventListener("click", () => hideLeaderboard());
-}
 
 applyRandomStageBackground();
 loadHighScoreFromCookie();
-loadLeaderboard();
 updateHighScoreUI();
-renderLeaderboard();
 
 if (startO) {
   startO.addEventListener("click", () => {
