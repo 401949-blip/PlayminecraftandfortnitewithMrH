@@ -24,6 +24,12 @@ body {
   background-size: auto, auto, 40px 40px, 40px 40px;
 }
 
+#game.devito-mode {
+  background:
+    linear-gradient(rgba(8, 8, 12, 0.42), rgba(8, 8, 12, 0.42)),
+    url('../assets/images/devito.jpeg') center / cover no-repeat !important;
+}
+
 #game.menu-mode #icePathCanvas,
 #game.menu-mode #hudTop,
 #game.menu-mode #bossUI,
@@ -41,6 +47,34 @@ body {
 #game.menu-mode #kirkShieldRing,
 #game.menu-mode #player {
   display: none !important;
+}
+
+#game.devito-mode .enemy,
+#game.devito-mode .orb,
+#game.devito-mode .power,
+#game.devito-mode .kirk,
+#game.devito-mode .bonix,
+#game.devito-mode .drake,
+#game.devito-mode .boss-bullet {
+  background-image: url('../assets/images/devito.jpeg') !important;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
+}
+
+#game.devito-mode .enemy::before,
+#game.devito-mode .enemy::after,
+#game.devito-mode .orb::before,
+#game.devito-mode .orb::after,
+#game.devito-mode .power::before,
+#game.devito-mode .power::after,
+#game.devito-mode .kirk::before,
+#game.devito-mode .kirk::after,
+#game.devito-mode .bonix::before,
+#game.devito-mode .bonix::after,
+#game.devito-mode .drake::before,
+#game.devito-mode .drake::after {
+  content: none !important;
 }
 
 #game.paused-mode > *:not(#pauseMenu) {
@@ -901,6 +935,12 @@ body {
 @keyframes powerupRing {
   0% { transform: rotate(0deg); opacity: 0.95; }
   100% { transform: rotate(360deg); opacity: 0.45; }
+}
+
+@keyframes boNixDustDrift {
+  0% { transform: translate3d(0, 0, 0); opacity: 0.25; }
+  15% { opacity: 0.9; }
+  100% { transform: translate3d(var(--dust-drift, 180px), var(--dust-rise, -12px), 0); opacity: 0; }
 }
 
 @keyframes playerAura {
