@@ -121,6 +121,10 @@ document.addEventListener("keydown", e => {
   }
   if (paused || menuOpen) return;
   keys[e.key] = true;
+  if (e.code === "Space") {
+    e.preventDefault();
+    parryNearestJackOrb();
+  }
   if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
     e.preventDefault();
   }
