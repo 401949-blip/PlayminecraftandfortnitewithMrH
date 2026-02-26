@@ -33,6 +33,7 @@ const newHighScoreTextEl = document.getElementById("newHighScoreText");
 const bossUI = document.getElementById("bossUI");
 const bossFill = document.getElementById("bossFill");
 const bossHpText = document.getElementById("bossHpText");
+const bossNameEl = document.getElementById("bossName");
 const bossAmbience = document.getElementById("bossAmbience");
 const hudTop = document.getElementById("hudTop");
 
@@ -65,6 +66,9 @@ let drakeTimer;
 
 let nextBossAt = 0;
 let bossActive = false;
+let currentBossType = "";
+let evilJackSpawned = false;
+let evilJackQueued = false;
 let bossEl = null;
 let bossX = 0;
 let bossY = 0;
@@ -91,6 +95,10 @@ let pendingBackgroundReroll = false;
 let currentStageBackground = "";
 let highScore = 0;
 let newHighScoreRun = false;
+let hathawaySpawnRemainingMs = 120000;
+let hathawaySpawnResumeAt = 0;
+let playerFrozenUntil = 0;
+let scoreMultiplierUntil = 0;
 let audioCtx = null;
 let audioReady = false;
 let activeThemeStop = null;
