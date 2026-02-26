@@ -89,7 +89,8 @@ function updateBossBullets(dt) {
 function updateEnemies(now, dt) {
   const enemies = Array.from(document.querySelectorAll(".enemy"));
   const powerups = Array.from(document.querySelectorAll(".power,.kirk,.bonix,.drake"));
-  const heavyLoad = enemies.length > 16;
+  const heavyLoad = enemies.length > 10 || bossActive;
+  const frameBand = Math.floor(now / 80) % 2;
   const powerupCenters = powerups.map(p => {
     const pw = p.getBoundingClientRect().width || 32;
     const ph = p.getBoundingClientRect().height || 32;
@@ -151,10 +152,11 @@ function updateEnemies(now, dt) {
     return { x: ax, y: ay };
   }
 
-  enemies.forEach(e => {
+  enemies.forEach((e, idx) => {
+    const frameSkip = heavyLoad && (idx % 2 !== frameBand);
     const frozenUntil = parseInt(e.dataset.frozenUntil || "0", 10);
     if (frozenUntil > now) {
-      if (enemyTouchesIcePath(e)) {
+      if (!frameSkip && enemyTouchesIcePath(e)) {
         if (enemies.length < 22 || Math.random() < 0.28) {
           const r = e.getBoundingClientRect();
           iceBreakBurst(r.left + r.width / 2, r.top + r.height / 2, game);
@@ -169,9 +171,14 @@ function updateEnemies(now, dt) {
     }
 
     if (e.dataset.frozenUntil) unfreezeEnemy(e);
-    if (enemyTouchesIcePath(e)) {
+    if (!frameSkip && enemyTouchesIcePath(e)) {
       freezeEnemy(e);
       sfx("freeze");
+      return;
+    }
+
+    if (frameSkip) {
+      if (enemyCanDamage(e) && !playerDamageImmune() && collide(player, e) && !consumeShieldHit(e, true)) death();
       return;
     }
 

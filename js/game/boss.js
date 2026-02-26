@@ -95,26 +95,27 @@ function beginBossPhase(type) {
   game.classList.add("boss-mode");
   updateBossUI();
 
-  for (let i = 0; i < (type === "jack" ? 3 : 4); i++) spawn("orb");
+  for (let i = 0; i < (type === "jack" ? 1 : 1); i++) spawn("orb");
 
   bossMinionTimer = setInterval(() => {
     if (!bossActive || gameOver || paused || menuOpen) return;
+    if (document.querySelectorAll(".enemy").length >= (type === "jack" ? 6 : 5)) return;
     if (canSpawnEnemy()) spawnEnemyNearBoss();
-    if (Math.random() < (type === "jack" ? 0.22 : 0.28) && canSpawnEnemy()) spawnEnemyNearBoss();
-  }, type === "jack" ? 3200 : 3800);
+    if (Math.random() < (type === "jack" ? 0.08 : 0.05) && canSpawnEnemy()) spawnEnemyNearBoss();
+  }, type === "jack" ? 4300 : 5200);
 
   bossBulletTimer = setInterval(() => {
     if (!bossActive || gameOver || paused || menuOpen) return;
     spawnBossBullet();
-    if (Math.random() < (type === "jack" ? 0.24 : 0.2)) {
-      cutsceneTimeout(() => spawnBossBullet(), 210);
+    if (Math.random() < (type === "jack" ? 0.08 : 0.06)) {
+      cutsceneTimeout(() => spawnBossBullet(), 260);
     }
-  }, type === "jack" ? 1250 : 1500);
+  }, type === "jack" ? 1700 : 2000);
 
   bossOrbTimer = setInterval(() => {
     if (!bossActive || gameOver || paused || menuOpen) return;
-    if (document.querySelectorAll(".orb").length < (type === "jack" ? 4 : 5)) spawn("orb");
-  }, 900);
+    if (document.querySelectorAll(".orb").length < (type === "jack" ? 2 : 1)) spawn("orb");
+  }, 1600);
 }
 
 function showSpawnAnnouncement(text) {
@@ -760,8 +761,6 @@ function endBossFight(victory) {
 
   if (victory) {
     addScore(200);
-    speed += 7;
-    spdEl.textContent = speed.toFixed(1);
   }
 
   if (victory && endedBossType === "jack") {
