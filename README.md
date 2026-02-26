@@ -1,11 +1,2 @@
-Make the freeze death effect its own, seperate from the cherry blossom death effect.
-Also the Charlie Kirk hammer animation is geeked
-Also CK Necromancer lags out the game fix if possible?
 
-
-
-
-
-
-
-JACK BOSS IS ADDED
+UPDATE 2.26.26 JACK BOSS IS ADDED. LAG IS REDUCED. EVIL HATHAWAY DEATH EFFECT REVAMP.
