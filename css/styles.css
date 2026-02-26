@@ -619,6 +619,20 @@ body {
   filter: contrast(1.08) saturate(1.12);
 }
 
+#game.cutscene-mode .enemy,
+#game.cutscene-mode .orb,
+#game.cutscene-mode .power,
+#game.cutscene-mode .kirk,
+#game.cutscene-mode .bonix,
+#game.cutscene-mode .drake,
+#game.cutscene-mode .boss-bullet,
+#game.cutscene-mode #icePathCanvas,
+#game.cutscene-mode #shieldRing,
+#game.cutscene-mode #kirkShieldRing {
+  visibility: hidden !important;
+  animation: none !important;
+}
+
 #player.frozen-player {
   filter: saturate(0.78) hue-rotate(18deg) drop-shadow(0 0 20px rgba(144, 224, 255, 0.98));
   animation: frozenPulse 0.6s ease-in-out infinite;
