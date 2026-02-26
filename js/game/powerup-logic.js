@@ -35,7 +35,11 @@ function updatePowerupCollisions() {
     if (collide(player, p)) {
       p.remove();
       sfx("pickup");
-      devitoCutscene();
+      if (!devitoModeActive && Math.random() < 0.001) {
+        devitoModeCutscene();
+      } else {
+        devitoCutscene();
+      }
     }
   });
 
