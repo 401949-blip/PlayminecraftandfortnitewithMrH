@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Do Your Work</title>
-<link rel="stylesheet" href="../css/styles.css?v=20260226a">
+<link rel="stylesheet" href="../css/styles.css?v=20260226c">
+<script>window.WEBSITE_GAME_LEADERBOARD_API = window.WEBSITE_GAME_LEADERBOARD_API || "";</script>
 </head>
 <body>
 <div id="game" tabindex="0">
@@ -45,20 +46,29 @@
   <div id="pauseMenu" class="menu-overlay pause-overlay hidden" aria-hidden="true">
     <div class="pause-panel">
       <button id="resumeGameBtn" class="menu-btn" type="button"><span class="btn-label">Play</span></button>
+      <button id="leaderboardMenuBtn" class="menu-btn" type="button"><span class="btn-label">Leaderboard</span></button>
       <button id="exitMenuBtn" class="menu-btn secondary" type="button"><span class="btn-label">Exit to Main Menu</span></button>
+    </div>
+  </div>
+
+  <div id="leaderboardOverlay" class="menu-overlay pause-overlay hidden" aria-hidden="true">
+    <div class="leaderboard-panel">
+      <div class="leaderboard-title">Top 5 Leaderboard</div>
+      <ol id="leaderboardList"></ol>
+      <button id="leaderboardCloseBtn" class="menu-btn" type="button"><span class="btn-label">Close</span></button>
     </div>
   </div>
 </div>
 
-<script src="../js/game/state.js?v=20260226a"></script>
-<script src="../js/game/audio.js?v=20260226a"></script>
-<script src="../js/game/core.js?v=20260226a"></script>
-<script src="../js/game/effects.js?v=20260226a"></script>
-<script src="../js/game/powerups.js?v=20260226a"></script>
-<script src="../js/game/boss.js?v=20260226a"></script>
-<script src="../js/game/enemy-logic.js?v=20260226a"></script>
-<script src="../js/game/powerup-logic.js?v=20260226a"></script>
-<script src="../js/game/loop.js?v=20260226a"></script>
-<script src="../js/game/bootstrap.js?v=20260226a"></script>
+<script src="../js/game/state.js?v=20260226c"></script>
+<script src="../js/game/audio.js?v=20260226c"></script>
+<script src="../js/game/core.js?v=20260226c"></script>
+<script src="../js/game/effects.js?v=20260226c"></script>
+<script src="../js/game/powerups.js?v=20260226c"></script>
+<script src="../js/game/boss.js?v=20260226c"></script>
+<script src="../js/game/enemy-logic.js?v=20260226c"></script>
+<script src="../js/game/powerup-logic.js?v=20260226c"></script>
+<script src="../js/game/loop.js?v=20260226c"></script>
+<script src="../js/game/bootstrap.js?v=20260226c"></script>
 </body>
 </html>

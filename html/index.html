@@ -4,11 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Do Your Work</title>
-<link rel="stylesheet" href="../css/home.css?v=20260225a">
+<link rel="stylesheet" href="../css/home.css?v=20260226c">
+<script>window.WEBSITE_GAME_LEADERBOARD_API = window.WEBSITE_GAME_LEADERBOARD_API || "";</script>
 </head>
 <body>
 <div id="start">
-  <h1>Do your w<a id="startO" title="Start game" href="./game.html">o</a>rk</h1>
+  <h1>Do <a id="startY" title="Leaderboard" href="#">y</a>our w<a id="startO" title="Start game" href="./game.html">o</a>rk</h1>
 </div>
+<div id="homeLeaderboard" class="home-leaderboard hidden" aria-hidden="true">
+  <div class="home-leaderboard-panel">
+    <div class="home-leaderboard-title">Top 5 Leaderboard</div>
+    <ol id="homeLeaderboardList"></ol>
+    <button id="homeLeaderboardClose" type="button">Close</button>
+  </div>
+</div>
+<script src="../js/home.js?v=20260226c"></script>
 </body>
 </html>
