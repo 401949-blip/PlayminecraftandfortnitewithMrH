@@ -84,9 +84,11 @@ function boNixCutscene() {
   horseWrap.style.position = "absolute";
   horseWrap.style.width = "480px";
   horseWrap.style.height = "300px";
-  horseWrap.style.left = "-560px";
+  horseWrap.style.left = "68%";
   horseWrap.style.bottom = "12%";
-  horseWrap.style.transition = "left 1850ms cubic-bezier(.08,.86,.16,1), transform 1850ms cubic-bezier(.08,.86,.16,1)";
+  horseWrap.style.transform = "translate3d(-950px,0,0)";
+  horseWrap.style.transition = "transform 2200ms cubic-bezier(.08,.86,.16,1)";
+  horseWrap.style.willChange = "transform";
   horseWrap.style.zIndex = "3";
   overlay.appendChild(horseWrap);
 
@@ -124,10 +126,13 @@ function boNixCutscene() {
   speedLines.style.opacity = "0";
   speedLines.style.transition = "opacity 180ms linear";
   speedLines.style.mixBlendMode = "screen";
+  speedLines.style.willChange = "opacity";
+  speedLines.style.transform = "translateZ(0)";
   overlay.appendChild(speedLines);
 
   const dust = [];
-  for (let i = 0; i < FX_SETTINGS.boNixDust; i++) {
+  const dustCount = Math.max(5, Math.floor(FX_SETTINGS.boNixDust * 0.6));
+  for (let i = 0; i < dustCount; i++) {
     const d = document.createElement("div");
     const size = 2 + Math.random() * 7;
     d.style.position = "absolute";
@@ -136,6 +141,7 @@ function boNixCutscene() {
     d.style.borderRadius = "50%";
     d.style.background = i % 3 ? "rgba(255,190,120,0.75)" : "rgba(255,228,178,0.82)";
     d.style.boxShadow = "0 0 12px rgba(255,188,112,0.72)";
+    d.style.willChange = "transform, opacity";
     overlay.appendChild(d);
     dust.push({
       el: d,
@@ -179,8 +185,14 @@ function boNixCutscene() {
   overlay.appendChild(subtitle);
 
   let running = true;
-  function animateDust() {
+  let lastDustTick = 0;
+  function animateDust(ts) {
     if (!running) return;
+    if (ts - lastDustTick < 33) {
+      requestAnimationFrame(animateDust);
+      return;
+    }
+    lastDustTick = ts;
     dust.forEach(p => {
       p.x += p.vx;
       p.y += p.vy;
@@ -188,7 +200,7 @@ function boNixCutscene() {
         p.x = -30;
         p.y = window.innerHeight * (0.45 + Math.random() * 0.5);
       }
-      p.el.style.transform = `translate(${p.x}px,${p.y}px)`;
+      p.el.style.transform = `translate3d(${p.x}px,${p.y}px,0)`;
     });
     requestAnimationFrame(animateDust);
   }
@@ -204,8 +216,7 @@ function boNixCutscene() {
   }, 220);
   cutsceneTimeout(() => {
     speedLines.style.opacity = "0.78";
-    horseWrap.style.left = "68%";
-    horseWrap.style.transform = "translateX(-50px)";
+    horseWrap.style.transform = "translate3d(-50px,0,0)";
   }, 480);
   cutsceneTimeout(() => {
     speedLines.style.opacity = "0.25";
