@@ -53,7 +53,7 @@ export class EnemySystem {
   }
 
   freezeEnemy(enemyEl) {
-    const now = Date.now();
+    const now = this.store.gameTimeMs;
     if (!enemyEl.dataset.prevBg) enemyEl.dataset.prevBg = enemyEl.style.background || "";
     if (!enemyEl.dataset.prevShadow) enemyEl.dataset.prevShadow = enemyEl.style.boxShadow || "";
     if (!enemyEl.dataset.prevBorder) enemyEl.dataset.prevBorder = enemyEl.style.border || "";

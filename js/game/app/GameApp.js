@@ -31,7 +31,7 @@ export class GameApp {
     });
 
     this.clock = new Clock(this.store);
-    this.scheduler = new Scheduler(this.store);
+    this.scheduler = new Scheduler(this.store, this.clock);
 
     this.storage = new StorageService();
     this.audio = new AudioService();
@@ -52,7 +52,8 @@ export class GameApp {
       store: this.store,
       refs: this.refs,
       effects: this.effects,
-      scheduler: this.scheduler
+      scheduler: this.scheduler,
+      clock: this.clock
     });
 
     this.uiSystem = new UISystem({
@@ -68,7 +69,8 @@ export class GameApp {
       effects: this.effects,
       audio: this.audio,
       cutsceneDirector: this.cutsceneDirector,
-      spawnSystem: this.spawnSystem
+      spawnSystem: this.spawnSystem,
+      clock: this.clock
     });
 
     this.enemySystem = new EnemySystem({
@@ -84,12 +86,14 @@ export class GameApp {
       effects: this.effects,
       audio: this.audio,
       cutsceneDirector: this.cutsceneDirector,
-      scheduler: this.scheduler
+      scheduler: this.scheduler,
+      clock: this.clock
     });
 
     this.playerMovementSystem = new PlayerMovementSystem({
       store: this.store,
-      refs: this.refs
+      refs: this.refs,
+      clock: this.clock
     });
 
     this.frameLoop = new FrameLoop(this.store, () => this.tick());
@@ -101,10 +105,12 @@ export class GameApp {
       onRestartGame: () => this.restartGame(),
       onExitToMainMenu: () => this.exitToMainMenu(),
       onTogglePause: () => this.togglePause(),
+      onSecretCode: (code) => this.handleSecretCode(code),
       onPauseChange: (isPaused) => {
         if (isPaused) this.phaseMachine.transition(PHASES.PAUSED);
         else this.phaseMachine.transition(PHASES.RUNNING);
       },
+      clock: this.clock,
       audio: this.audio,
       highScoreService: this.highScoreService
     });
@@ -133,6 +139,13 @@ export class GameApp {
     this.menuController.setPaused(!this.store.paused);
   }
 
+  handleSecretCode(code) {
+    if (code === "FLTN") {
+      const started = this.bossSystem.summonBoss("descended_fulton");
+      if (started) this.phaseMachine.transition(PHASES.BOSS);
+    }
+  }
+
   init() {
     this.spawnSystem.resizeIceCanvas();
     this.menuController.bind();
@@ -145,7 +158,7 @@ export class GameApp {
 
     window.addEventListener("resize", () => {
       this.spawnSystem.resizeIceCanvas();
-      this.powerupSystem.drawIcePath(Date.now());
+      this.powerupSystem.drawIcePath(this.clock.nowMs());
     });
   }
 
@@ -179,10 +192,11 @@ export class GameApp {
     this.spawnSystem.clearDynamicObjects();
 
     this.store.resetRun();
+    this.clock.reset();
     this.audio.stopTheme();
 
     this.scheduleNextBoss();
-    this.powerupSystem.drawIcePath(Date.now());
+    this.powerupSystem.drawIcePath(this.clock.nowMs());
     this.uiSystem.resetRunUI();
   }
 
@@ -236,7 +250,8 @@ export class GameApp {
       return;
     }
 
-    const nowMs = Date.now();
+    const frameNow = performance.now();
+    const nowMs = this.clock.advance(frameNow);
     if (s.cutsceneActive) {
       if (!s.cutsceneFreezeAt) {
         s.cutsceneFreezeAt = nowMs;
@@ -256,7 +271,6 @@ export class GameApp {
       return;
     }
 
-    const frameNow = performance.now();
     const frameDt = s.lastFrameAt ? (frameNow - s.lastFrameAt) / (1000 / 60) : 1;
     const dt = Math.max(0.5, Math.min(1.8, frameDt));
     s.lastFrameAt = frameNow;
@@ -277,12 +291,13 @@ export class GameApp {
 
     const wrapped = this.playerMovementSystem.update(dt);
 
-    const now = Date.now();
+    const now = nowMs;
     this.powerupSystem.updateDrakeTrails(now, wrapped);
 
-    if (this.bossSystem.shouldStartBoss(now)) {
+    const readyBossId = this.bossSystem.getReadyBossId(now);
+    if (readyBossId) {
       this.phaseMachine.transition(PHASES.BOSS);
-      this.bossSystem.startBossFight();
+      this.bossSystem.startBossFight(readyBossId);
     }
 
     this.bossSystem.updateBoss(dt);

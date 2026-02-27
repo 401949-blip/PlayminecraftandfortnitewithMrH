@@ -5,13 +5,14 @@ import { runKirkCutscene } from "../gameplay/powerups/cutscenes/kirkCutscene.js?
 import { createPowerupEffects } from "../gameplay/powerups/effects/index.js";
 
 export class PowerupSystem {
-  constructor({ store, refs, effects, audio, cutsceneDirector, spawnSystem }) {
+  constructor({ store, refs, effects, audio, cutsceneDirector, spawnSystem, clock }) {
     this.store = store;
     this.refs = refs;
     this.effects = effects;
     this.audio = audio;
     this.cutsceneDirector = cutsceneDirector;
     this.spawnSystem = spawnSystem;
+    this.clock = clock;
 
     this.addScore = () => {};
     this.onBossOrbHit = null;
@@ -26,7 +27,7 @@ export class PowerupSystem {
   }
 
   drakePowerActive() {
-    return Date.now() < this.store.drakePowerUntil;
+    return this.clock.nowMs() < this.store.drakePowerUntil;
   }
 
   setShieldActive(active) {
@@ -37,12 +38,12 @@ export class PowerupSystem {
   consumeShieldHit(source, removeSource) {
     const s = this.store;
     if (s.cutsceneActive) return true;
-    if (Date.now() < s.shieldImmuneUntil) return true;
+    if (this.clock.nowMs() < s.shieldImmuneUntil) return true;
     if (!s.hasShield) return false;
 
     this.setShieldActive(false);
     this.audio.sfx("freeze");
-    s.shieldImmuneUntil = Date.now() + 700;
+    s.shieldImmuneUntil = this.clock.nowMs() + 700;
     if (removeSource && source) source.remove();
 
     const pulse = document.createElement("div");
@@ -74,7 +75,7 @@ export class PowerupSystem {
   }
 
   spawnIceTrail() {
-    const now = Date.now();
+    const now = this.clock.nowMs();
     const px = this.store.x + 30;
     const py = this.store.y + 30;
     const last = this.store.icePathPoints[this.store.icePathPoints.length - 1];
@@ -87,7 +88,7 @@ export class PowerupSystem {
   }
 
   markIcePathBreak() {
-    const now = Date.now();
+    const now = this.clock.nowMs();
     const last = this.store.icePathPoints[this.store.icePathPoints.length - 1];
     if (!last || last.break) return;
     this.store.icePathPoints.push({ break: true, t: now });
@@ -180,6 +181,7 @@ export class PowerupSystem {
       store: this.store,
       refs: this.refs,
       audio: this.audio,
+      clock: this.clock,
       cutsceneDirector: this.cutsceneDirector,
       effects: this.effects,
       spawnSystem: this.spawnSystem,
@@ -196,6 +198,7 @@ export class PowerupSystem {
     if (!effect) return;
     effect.apply({
       store: this.store,
+      clock: this.clock,
       setShieldActive: (active) => this.setShieldActive(active),
       runCutscene: (type) => this.runCutscene(type)
     });
@@ -246,7 +249,7 @@ export class PowerupSystem {
   }
 
   updateKirkShieldRing() {
-    const now = Date.now();
+    const now = this.clock.nowMs();
     const remaining = this.store.kirkInvincibleUntil - now;
     const active = remaining > 0;
     this.refs.kirkShieldRing.style.display = active ? "block" : "none";

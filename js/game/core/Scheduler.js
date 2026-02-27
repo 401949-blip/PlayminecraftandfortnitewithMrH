@@ -1,8 +1,9 @@
 import { SCHEDULER_CHANNELS } from "../config/constants.js";
 
 export class Scheduler {
-  constructor(store) {
+  constructor(store, clock) {
     this.store = store;
+    this.clock = clock;
     this.tasks = new Set();
   }
 
@@ -13,41 +14,49 @@ export class Scheduler {
   }
 
   every(ms, cb, channel = SCHEDULER_CHANNELS.GAMEPLAY) {
-    const id = setInterval(() => {
-      if (!this._canTick(channel)) return;
-      cb();
-    }, ms);
-    const handle = { kind: "interval", id };
-    this.tasks.add(handle);
-    return handle;
-  }
-
-  after(ms, cb, channel = SCHEDULER_CHANNELS.REALTIME) {
-    const start = performance.now();
-    const handle = { kind: "timeout", id: 0, cancelled: false };
+    const handle = { kind: "interval", id: 0, cancelled: false, nextAt: this._now(channel) + ms };
     const tick = () => {
+      this.tasks.delete(handle);
       if (handle.cancelled) return;
-      if (!this._canTick(channel)) {
-        handle.id = window.setTimeout(tick, 16);
-        return;
-      }
-      const elapsed = performance.now() - start;
-      if (elapsed >= ms) {
-        this.tasks.delete(handle);
+      const now = this._now(channel);
+      if (this._canTick(channel) && now >= handle.nextAt) {
+        handle.nextAt = now + ms;
         cb();
-        return;
       }
       handle.id = window.setTimeout(tick, 16);
+      this.tasks.add(handle);
     };
     handle.id = window.setTimeout(tick, 16);
     this.tasks.add(handle);
     return handle;
   }
 
+  after(ms, cb, channel = SCHEDULER_CHANNELS.REALTIME) {
+    const handle = { kind: "timeout", id: 0, cancelled: false, targetAt: this._now(channel) + ms };
+    const tick = () => {
+      this.tasks.delete(handle);
+      if (handle.cancelled) return;
+      if (this._canTick(channel) && this._now(channel) >= handle.targetAt) {
+        this.tasks.delete(handle);
+        cb();
+        return;
+      }
+      handle.id = window.setTimeout(tick, 16);
+      this.tasks.add(handle);
+    };
+    handle.id = window.setTimeout(tick, 16);
+    this.tasks.add(handle);
+    return handle;
+  }
+
+  _now(channel) {
+    if (channel === SCHEDULER_CHANNELS.REALTIME) return this.clock.wallNowMs();
+    return this.clock.nowMs();
+  }
+
   cancel(handle) {
     if (!handle) return;
-    if (handle.kind === "interval") clearInterval(handle.id);
-    if (handle.kind === "timeout") {
+    if (handle.kind === "interval" || handle.kind === "timeout") {
       handle.cancelled = true;
       clearTimeout(handle.id);
     }

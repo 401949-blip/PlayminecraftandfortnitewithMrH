@@ -39,6 +39,7 @@ export class UISystem {
 
     r.game.classList.remove("death-mode");
     r.bossUI.style.display = "none";
+    if (r.bossName) r.bossName.textContent = "EVIL HATHAWAY";
     r.bossFill.style.width = "100%";
     r.bossHpText.textContent = "100%";
     r.bossAmbience.style.display = "none";

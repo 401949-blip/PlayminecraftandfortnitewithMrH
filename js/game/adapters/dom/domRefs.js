@@ -20,6 +20,7 @@ export function createDomRefs() {
     deathHighScoreValueEl: document.getElementById("deathHighScoreValue"),
     newHighScoreTextEl: document.getElementById("newHighScoreText"),
     bossUI: document.getElementById("bossUI"),
+    bossName: document.getElementById("bossName"),
     bossFill: document.getElementById("bossFill"),
     bossHpText: document.getElementById("bossHpText"),
     bossAmbience: document.getElementById("bossAmbience"),

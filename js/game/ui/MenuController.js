@@ -1,5 +1,5 @@
 export class MenuController {
-  constructor({ store, refs, onStartGame, onRestartGame, onExitToMainMenu, onTogglePause, onPauseChange, audio, highScoreService }) {
+  constructor({ store, refs, onStartGame, onRestartGame, onExitToMainMenu, onTogglePause, onPauseChange, onSecretCode, clock, audio, highScoreService }) {
     this.store = store;
     this.refs = refs;
     this.onStartGame = onStartGame;
@@ -7,11 +7,32 @@ export class MenuController {
     this.onExitToMainMenu = onExitToMainMenu;
     this.onTogglePause = onTogglePause;
     this.onPauseChange = onPauseChange || null;
+    this.onSecretCode = onSecretCode || null;
+    this.clock = clock;
     this.audio = audio;
     this.highScoreService = highScoreService;
+    this.secretBuffer = "";
+    this.secretBufferAt = 0;
 
     this.handleKeyDown = this.handleKeyDown.bind(this);
     this.handleKeyUp = this.handleKeyUp.bind(this);
+  }
+
+  pushSecretKey(key) {
+    const upperKey = String(key || "").toUpperCase();
+    if (!/^[A-Z]$/.test(upperKey)) return;
+
+    const now = performance.now();
+    if (now - this.secretBufferAt > 1400) {
+      this.secretBuffer = "";
+    }
+    this.secretBufferAt = now;
+    this.secretBuffer = (this.secretBuffer + upperKey).slice(-12);
+
+    if (this.secretBuffer.endsWith("FLTN")) {
+      this.secretBuffer = "";
+      this.onSecretCode?.("FLTN");
+    }
   }
 
   showOverlayWithAnimation(overlayEl) {
@@ -76,18 +97,14 @@ export class MenuController {
     const s = this.store;
     const r = this.refs;
     if (!s.gameStarted || s.gameOver || s.menuOpen || s.transitioningMenu) return;
-    s.paused = nextPaused;
-    if (s.paused) {
-      if (!s.pauseStartedAt) s.pauseStartedAt = Date.now();
+    if (nextPaused) {
+      this.clock.pause();
       if (this.onPauseChange) this.onPauseChange(true);
       this.showOverlayWithAnimation(r.pauseMenu);
       r.pauseMenu.setAttribute("aria-hidden", "false");
       r.game.classList.add("paused-mode");
     } else {
-      if (s.pauseStartedAt) {
-        s.pausedAccumulatedMs += Math.max(0, Date.now() - s.pauseStartedAt);
-        s.pauseStartedAt = 0;
-      }
+      this.clock.resume();
       this.hideOverlayWithAnimation(r.pauseMenu, () => {
         if (this.onPauseChange) this.onPauseChange(false);
         r.pauseMenu.setAttribute("aria-hidden", "true");
@@ -133,6 +150,7 @@ export class MenuController {
       return;
     }
     if (s.paused || s.menuOpen) return;
+    this.pushSecretKey(e.key);
     s.keys[e.key] = true;
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key)) {
       e.preventDefault();

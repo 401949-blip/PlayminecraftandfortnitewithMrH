@@ -3,11 +3,12 @@ import { POWERUP_REGISTRY } from "../gameplay/powerups/PowerupRegistry.js";
 import { AssetCatalog } from "../services/AssetCatalog.js";
 
 export class SpawnSystem {
-  constructor({ store, refs, effects, scheduler }) {
+  constructor({ store, refs, effects, scheduler, clock }) {
     this.store = store;
     this.refs = refs;
     this.effects = effects;
     this.scheduler = scheduler;
+    this.clock = clock;
     this.timerHandles = [];
   }
 
@@ -29,7 +30,7 @@ export class SpawnSystem {
   }
 
   enemyBudgetNow() {
-    const elapsedSec = Math.max(0, (Date.now() - this.store.runStartedAt) / 1000);
+    const elapsedSec = Math.max(0, this.clock.runElapsedMs() / 1000);
     const ramp = Math.min(CONSTANTS.MAX_ENEMIES_RAMP, Math.floor(elapsedSec / 25));
     return CONSTANTS.MAX_ENEMIES_BASE + ramp;
   }
@@ -40,7 +41,7 @@ export class SpawnSystem {
   }
 
   initEnemySpawnGrace(enemyEl) {
-    enemyEl.dataset.spawnSafeUntil = String(Date.now() + CONSTANTS.ENEMY_SPAWN_SAFE_MS);
+    enemyEl.dataset.spawnSafeUntil = String(this.clock.nowMs() + CONSTANTS.ENEMY_SPAWN_SAFE_MS);
     enemyEl.classList.add("spawn-safe");
   }
 
@@ -69,7 +70,7 @@ export class SpawnSystem {
     }));
 
     this.timerHandles.push(this.scheduler.every(drakeIntervalMs, () => {
-      if (s.gameOver || s.cutsceneActive || s.paused || s.menuOpen || Date.now() < s.drakePowerUntil) return;
+      if (s.gameOver || s.cutsceneActive || s.paused || s.menuOpen || this.clock.nowMs() < s.drakePowerUntil) return;
       if (document.querySelectorAll(".drake").length === 0) this.spawn("drake");
     }));
 

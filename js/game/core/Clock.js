@@ -4,8 +4,12 @@ export class Clock {
     this.frozenTags = new Set();
   }
 
-  nowMs() {
+  wallNowMs() {
     return Date.now();
+  }
+
+  nowMs() {
+    return this.store.gameTimeMs;
   }
 
   isFrozen() {
@@ -23,21 +27,40 @@ export class Clock {
   }
 
   pause() {
-    const s = this.store;
-    if (!s.pauseStartedAt) s.pauseStartedAt = Date.now();
-    s.paused = true;
+    this.store.paused = true;
   }
 
   resume() {
     const s = this.store;
-    if (s.pauseStartedAt) {
-      s.pausedAccumulatedMs += Math.max(0, Date.now() - s.pauseStartedAt);
-      s.pauseStartedAt = 0;
-    }
+    const now = performance.now();
     s.paused = false;
+    s.lastClockAt = now;
+    s.lastFrameAt = now;
+  }
+
+  reset(now = performance.now()) {
+    const s = this.store;
+    s.gameTimeMs = 0;
+    s.lastClockAt = now;
+    s.lastFrameAt = now;
+  }
+
+  advance(now = performance.now()) {
+    const s = this.store;
+    if (!s.lastClockAt) {
+      s.lastClockAt = now;
+      return s.gameTimeMs;
+    }
+
+    const delta = Math.max(0, now - s.lastClockAt);
+    s.lastClockAt = now;
+    if (!s.paused && !s.menuOpen && !this.isFrozen()) {
+      s.gameTimeMs += delta;
+    }
+    return s.gameTimeMs;
   }
 
   runElapsedMs() {
-    return this.store.getRunElapsedMs(Date.now());
+    return this.store.getRunElapsedMs();
   }
 }

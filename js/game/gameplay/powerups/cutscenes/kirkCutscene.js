@@ -1,11 +1,11 @@
 export function runKirkCutscene(ctx) {
-  const { store, refs, audio, cutsceneDirector, spawnSystem, addScore } = ctx;
+  const { store, refs, audio, cutsceneDirector, spawnSystem, addScore, clock } = ctx;
   if (store.cutsceneActive || store.gameOver) return;
 
   audio.setTheme(() => audio.startKirkTheme());
   const seq = cutsceneDirector.beginCutscene();
 
-  store.kirkInvincibleUntil = Date.now() + 10000;
+  store.kirkInvincibleUntil = clock.nowMs() + 10000;
   addScore(50);
   store.speed += 20;
   refs.spdEl.textContent = store.speed.toFixed(1);

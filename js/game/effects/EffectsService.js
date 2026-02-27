@@ -226,7 +226,6 @@ export class EffectsService {
       this.onDeathFinalize();
     }
 
-    s.runStartedAt = Date.now();
     r.timeEl.textContent = "00:00";
     r.player.style.opacity = "0";
 

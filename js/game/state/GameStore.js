@@ -36,8 +36,11 @@ export class GameStore {
     this.boNixTimer = null;
     this.drakeTimer = null;
 
-    this.nextBossAt = 0;
     this.bossActive = false;
+    this.currentBossId = null;
+    this.nextBossAtById = Object.create(null);
+    this.bossSpawnedById = Object.create(null);
+    this.bossTimerPausedAt = 0;
     this.bossEl = null;
     this.bossX = 0;
     this.bossY = 0;
@@ -57,9 +60,8 @@ export class GameStore {
 
     this.wrapGraceUntil = 0;
 
-    this.runStartedAt = Date.now();
-    this.pausedAccumulatedMs = 0;
-    this.pauseStartedAt = 0;
+    this.gameTimeMs = 0;
+    this.lastClockAt = 0;
 
     this.lastFrameAt = 0;
     this.loopRafId = 0;
@@ -93,8 +95,11 @@ export class GameStore {
     this.cutsceneActive = false;
     this.keys = {};
 
-    this.nextBossAt = 0;
     this.bossActive = false;
+    this.currentBossId = null;
+    this.nextBossAtById = Object.create(null);
+    this.bossSpawnedById = Object.create(null);
+    this.bossTimerPausedAt = 0;
     this.bossEl = null;
     this.bossX = 0;
     this.bossY = 0;
@@ -113,9 +118,8 @@ export class GameStore {
     this.icePathPoints = [];
     this.wrapGraceUntil = 0;
 
-    this.runStartedAt = Date.now();
-    this.pausedAccumulatedMs = 0;
-    this.pauseStartedAt = 0;
+    this.gameTimeMs = 0;
+    this.lastClockAt = 0;
 
     this.lastFrameAt = performance.now();
     this.cutsceneFreezeAt = 0;
@@ -125,13 +129,11 @@ export class GameStore {
     this.dynamicParticleHandles.clear();
   }
 
-  getRunElapsedMs(now = Date.now()) {
-    const livePauseMs = this.paused && this.pauseStartedAt ? (now - this.pauseStartedAt) : 0;
-    return Math.max(0, now - this.runStartedAt - this.pausedAccumulatedMs - livePauseMs);
+  getRunElapsedMs() {
+    return Math.max(0, this.gameTimeMs);
   }
 
-  playerDamageImmune() {
-    const now = Date.now();
+  playerDamageImmune(now = this.gameTimeMs) {
     return this.invincible || now < this.wrapGraceUntil || now < this.kirkInvincibleUntil;
   }
 }

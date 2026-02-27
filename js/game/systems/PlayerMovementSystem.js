@@ -1,9 +1,10 @@
 import { CONSTANTS } from "../config/constants.js";
 
 export class PlayerMovementSystem {
-  constructor({ store, refs }) {
+  constructor({ store, refs, clock }) {
     this.store = store;
     this.refs = refs;
+    this.clock = clock;
   }
 
   update(dt) {
@@ -43,7 +44,7 @@ export class PlayerMovementSystem {
       wrapped = true;
     }
 
-    if (wrapped) s.wrapGraceUntil = Date.now() + CONSTANTS.WRAP_GRACE_MS;
+    if (wrapped) s.wrapGraceUntil = this.clock.nowMs() + CONSTANTS.WRAP_GRACE_MS;
 
     this.refs.player.style.left = s.x + "px";
     this.refs.player.style.top = s.y + "px";
